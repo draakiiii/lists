@@ -10,7 +10,7 @@ const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: 'ListTrack - Personal List Management Platform',
-  description: 'Track and organize your lists by year and month',
+  description: 'Track and organize your lists',
 }
 
 export default function RootLayout({
