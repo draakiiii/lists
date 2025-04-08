@@ -306,7 +306,7 @@ export default function CategoriesPage() {
               </div>
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+              <Button type="button" variant="secondary" onClick={() => setDialogOpen(false)}>
                 Cancel
               </Button>
               <Button type="submit">
@@ -330,7 +330,7 @@ export default function CategoriesPage() {
             </p>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+            <Button type="button" variant="secondary" onClick={() => setDeleteDialogOpen(false)}>
               Cancel
             </Button>
             <Button variant="destructive" onClick={confirmDeleteCategory}>

@@ -285,7 +285,7 @@ export const List: React.FC<ListProps> = ({
                                             >
                                               <h4 className="font-medium text-foreground">{item.title}</h4>
                                               {item.description && (
-                                                <p className="text-sm text-muted-foreground mt-1">
+                                                <p className="text-sm text-muted-foreground mt-1 break-words whitespace-pre-wrap">  
                                                   {item.description}
                                                 </p>
                                               )}
@@ -334,7 +334,7 @@ export const List: React.FC<ListProps> = ({
                       <div className="flex items-start">
                         <SimpleButton
                           onClick={onAddColumn}
-                          className="h-10 whitespace-nowrap"
+                          className="h-10 whitespace-nowrap inline-flex items-center"
                         >
                           <LuPlus className="mr-2 h-4 w-4" />
                           Add Column

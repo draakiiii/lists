@@ -191,7 +191,7 @@ export default function Dashboard() {
           </div>
           <DialogFooter>
             <Button
-              variant="outline"
+              variant="secondary"
               onClick={() => setDeleteDialog({ open: false, listId: '', listName: '' })}
             >
               Cancel
