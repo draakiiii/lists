@@ -6,9 +6,14 @@ import { List, ListItem, Column, Category } from '@/types/list';
 const defaultSettings: UserSettings = {
   showCategoryLabels: true,
   showCategoryIcons: true,
+  showItemDescription: true,
+  showItemDates: true,
+  showItemTags: true,
   compactMode: false,
   defaultView: 'board',
   theme: 'system',
+  disableCategoryColors: false,
+  autoIncrementDuplicates: true
 };
 
 export const settingsService = {

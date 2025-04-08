@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import type { DroppableProvided, DroppableStateSnapshot, DraggableProvided, DraggableStateSnapshot } from '@hello-pangea/dnd';
 import { List as ListType, ListItem, Column, Category } from '@/types/list';
@@ -6,13 +6,14 @@ import { useRouter } from 'next/navigation';
 import { Statistics } from './Statistics';
 import { Button } from '@/components/ui/button';
 import { Badge } from '../../components/ui/badge';
-import { LuArrowLeft, LuPlus, LuSettings2, LuCalendar, LuCheck } from 'react-icons/lu';
+import { LuArrowLeft, LuPlus, LuSettings2, LuCalendar, LuCheck, LuCopy, LuTrash2 } from 'react-icons/lu';
 import { useAuth } from '@/providers/AuthProvider';
 import { settingsService } from '@/lib/services/settingsService';
 import { UserSettings } from '@/types/settings';
 import { listService } from '@/lib/services/listService';
 import { Timestamp } from 'firebase/firestore';
 import { Trash2 } from "lucide-react";
+import { createPortal } from 'react-dom';
 
 // Componentes simplificados para evitar dependencias problemáticas
 const SimpleButton = ({ onClick, className, children, variant = "default" }: { 
@@ -46,22 +47,70 @@ const SimpleDropdown = ({ trigger, children }: {
   children: React.ReactNode 
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState({ top: 0, left: 0 });
+  
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node) &&
+          triggerRef.current && !triggerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    const updatePosition = () => {
+      if (triggerRef.current && isOpen) {
+        const rect = triggerRef.current.getBoundingClientRect();
+        setPosition({
+          top: rect.bottom + window.scrollY,
+          left: rect.left + window.scrollX
+        });
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    window.addEventListener('scroll', updatePosition, true);
+    window.addEventListener('resize', updatePosition);
+
+    updatePosition();
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('scroll', updatePosition, true);
+      window.removeEventListener('resize', updatePosition);
+    };
+  }, [isOpen]);
+
+  const handleItemClick = (callback: () => void) => {
+    setIsOpen(false);
+    callback();
+  };
   
   return (
-    <div className="relative">
-      <div onClick={() => setIsOpen(!isOpen)}>{trigger}</div>
-      {isOpen && (
-        <>
-          <div 
-            className="fixed inset-0 z-10" 
-            onClick={() => setIsOpen(false)}
-          />
-          <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-background border z-20">
-            {children}
-          </div>
-        </>
+    <>
+      <div ref={triggerRef} onClick={() => setIsOpen(!isOpen)}>{trigger}</div>
+      {isOpen && typeof window !== 'undefined' && createPortal(
+        <div 
+          ref={dropdownRef}
+          className="fixed z-50 w-48 rounded-md shadow-lg bg-background border"
+          style={{
+            top: `${position.top}px`,
+            left: `${position.left}px`
+          }}
+        >
+          {React.Children.map(children, child => {
+            if (React.isValidElement(child) && typeof child.props.onClick === 'function') {
+              return React.cloneElement(child as React.ReactElement<{ onClick?: () => void }>, {
+                onClick: () => handleItemClick(child.props.onClick as () => void)
+              });
+            }
+            return child;
+          })}
+        </div>,
+        document.body
       )}
-    </div>
+    </>
   );
 };
 
@@ -107,6 +156,7 @@ interface ListProps {
   onAddItem: (columnId: string) => void;
   onEditItem: (item: ListItem) => void;
   onDeleteItem: (itemId: string) => void;
+  onDuplicateItem: (item: ListItem) => void;
   onAddColumn: () => void;
   onEditColumn: (column: Column) => void;
   onDeleteColumn: (columnId: string) => void;
@@ -139,6 +189,7 @@ export const List: React.FC<ListProps> = ({
   onAddItem,
   onEditItem,
   onDeleteItem,
+  onDuplicateItem,
   onAddColumn,
   onEditColumn,
   onDeleteColumn,
@@ -445,12 +496,41 @@ export const List: React.FC<ListProps> = ({
                                             className={`p-3 mb-2 bg-background rounded-md shadow-sm ${
                                               snapshot.isDragging ? 'shadow-lg' : ''
                                             }`}
-                                            onClick={() => onEditItem(item)}
                                           >
                                             <div className="flex items-center gap-2 mb-2">
-                                              <h4 className="font-medium text-foreground truncate flex-grow">
-                                                {item.title}
-                                              </h4>
+                                              <div 
+                                                className="flex-grow cursor-pointer" 
+                                                onClick={() => onEditItem(item)}
+                                              >
+                                                <h4 className="font-medium text-foreground break-words">
+                                                  {item.title}
+                                                </h4>
+                                              </div>
+                                              <div onClick={(e) => e.stopPropagation()}>
+                                                <SimpleDropdown 
+                                                  trigger={
+                                                    <SimpleButton variant="ghost" className="h-8 px-2 flex items-center justify-center text-foreground hover:bg-secondary/50">
+                                                      <LuSettings2 className="h-4 w-4" />
+                                                    </SimpleButton>
+                                                  }
+                                                >
+                                                  <SimpleDropdownItem onClick={() => onEditItem(item)} className="text-foreground bg-background hover:bg-secondary">
+                                                    <LuSettings2 className="h-4 w-4 mr-2 inline-block" />
+                                                    Edit Item
+                                                  </SimpleDropdownItem>
+                                                  <SimpleDropdownItem onClick={() => onDuplicateItem(item)} className="text-foreground bg-background hover:bg-secondary">
+                                                    <LuCopy className="h-4 w-4 mr-2 inline-block" />
+                                                    Duplicate Item
+                                                  </SimpleDropdownItem>
+                                                  <SimpleDropdownItem 
+                                                    onClick={() => onDeleteItem(item.id)} 
+                                                    className="text-red-500 dark:text-red-400 bg-background hover:bg-secondary"
+                                                  >
+                                                    <LuTrash2 className="h-4 w-4 mr-2 inline-block" />
+                                                    Delete Item
+                                                  </SimpleDropdownItem>
+                                                </SimpleDropdown>
+                                              </div>
                                               {item.categoryId && (settings?.showCategoryLabels || settings?.showCategoryIcons) && (
                                                 <Badge 
                                                   variant={settings?.disableCategoryColors ? "secondary" : "outline"}
@@ -469,12 +549,14 @@ export const List: React.FC<ListProps> = ({
                                               )}
                                             </div>
                                             {settings?.showItemDescription && item.description && (
-                                              <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                                                {item.description}
-                                              </p>
+                                              <div className="cursor-pointer" onClick={() => onEditItem(item)}>
+                                                <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                                                  {item.description}
+                                                </p>
+                                              </div>
                                             )}
                                             {settings?.showItemDates && (item.startDate || item.endDate) && (
-                                              <div className="flex gap-4 mt-2 text-xs text-muted-foreground">
+                                              <div className="flex gap-4 mt-2 text-xs text-muted-foreground cursor-pointer" onClick={() => onEditItem(item)}>
                                                 {item.startDate && item.endDate ? (
                                                   <span className="flex items-center gap-1">
                                                     <LuCalendar className="h-3 w-3" />
@@ -499,7 +581,7 @@ export const List: React.FC<ListProps> = ({
                                               </div>
                                             )}
                                             {settings?.showItemTags && item.tags && item.tags.length > 0 && (
-                                              <div className="flex flex-wrap gap-1 mt-2">
+                                              <div className="flex flex-wrap gap-1 mt-2 cursor-pointer" onClick={() => onEditItem(item)}>
                                                 {item.tags.map((tag, index) => (
                                                   <Badge key={index} variant="outline" className="text-xs">
                                                     {tag}

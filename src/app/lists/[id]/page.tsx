@@ -12,6 +12,7 @@ import { categoryService } from '@/lib/services/categoryService';
 import { useAuth } from '@/providers/AuthProvider';
 import { Button } from '@/components/ui/button';
 import { LuPencil } from 'react-icons/lu';
+import { settingsService } from '@/lib/services/settingsService';
 
 export default function ListPage() {
   const params = useParams();
@@ -73,12 +74,12 @@ export default function ListPage() {
     data: undefined as Column | undefined,
   });
 
-  const [itemDialog, setItemDialog] = useState({
-    open: false,
-    mode: 'add' as 'add' | 'edit',
-    data: undefined as ListItem | undefined,
-    columnId: '',
-  });
+  const [itemDialog, setItemDialog] = useState<{
+    open: boolean;
+    mode: 'add' | 'edit';
+    data?: ListItem;
+    columnId: string;
+  }>({ open: false, mode: 'add', columnId: '' });
 
   // Column handlers
   const handleAddColumn = useCallback(() => {
@@ -181,6 +182,60 @@ export default function ListPage() {
     }
   }, [params.id, toast]);
 
+  const handleDuplicateItem = useCallback(async (item: ListItem) => {
+    if (!user) return;
+    
+    try {
+      // Obtener la configuración del usuario
+      const userSettings = await settingsService.getUserSettings(user.uid);
+
+      // Función para extraer número de un string
+      const extractNumber = (str: string) => {
+        const match = str.match(/\d+$/);
+        return match ? parseInt(match[0]) : null;
+      };
+
+      // Función para incrementar el número en un string
+      const incrementNumber = (str: string) => {
+        const number = extractNumber(str);
+        if (number === null) return str;
+        const baseStr = str.replace(/\d+$/, '');
+        return `${baseStr}${number + 1}`;
+      };
+
+      // Preparar los datos del nuevo item
+      const itemData: any = {
+        title: userSettings.autoIncrementDuplicates && extractNumber(item.title) !== null 
+          ? incrementNumber(item.title) 
+          : `${item.title}`,
+        description: item.description && item.description.trim() !== '' ? item.description : null,
+        columnId: item.columnId,
+        categoryId: item.categoryId && item.categoryId.trim() !== '' ? item.categoryId : null,
+        startDate: item.startDate || null,
+        endDate: item.endDate || null,
+        order: items.filter(i => i.columnId === item.columnId).length,
+        tags: item.tags && Array.isArray(item.tags) && item.tags.length > 0 ? item.tags : null
+      };
+
+      // Añadir el nuevo item
+      const itemId = await listService.addItem(params.id as string, itemData);
+      const newItem = { ...itemData, id: itemId };
+      setItems(prev => [...prev, newItem as ListItem]);
+
+      toast({
+        title: 'Item duplicated',
+        description: 'The item has been duplicated successfully.',
+      });
+    } catch (error) {
+      console.error('Error duplicating item:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to duplicate item',
+        variant: 'destructive',
+      });
+    }
+  }, [items, params.id, toast, user]);
+
   const handleItemSubmit = useCallback(async (data: Omit<ListItem, 'id' | 'columnId' | 'order'>) => {
     try {
       if (!data.title || data.title.trim() === '') {
@@ -258,6 +313,7 @@ export default function ListPage() {
         onAddItem={handleAddItem}
         onEditItem={handleEditItem}
         onDeleteItem={handleDeleteItem}
+        onDuplicateItem={handleDuplicateItem}
         onAddColumn={handleAddColumn}
         onEditColumn={handleEditColumn}
         onDeleteColumn={handleDeleteColumn}
