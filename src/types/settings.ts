@@ -7,6 +7,7 @@ export interface UserSettings {
   compactMode: boolean;
   defaultView: 'board' | 'list';
   theme: 'light' | 'dark' | 'system';
+  disableCategoryColors: boolean;
 }
 
 export const DEFAULT_SETTINGS: UserSettings = {
@@ -17,5 +18,6 @@ export const DEFAULT_SETTINGS: UserSettings = {
   showItemTags: true,
   compactMode: false,
   defaultView: 'board',
-  theme: 'system'
+  theme: 'system',
+  disableCategoryColors: false
 }; 

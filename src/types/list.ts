@@ -21,7 +21,7 @@ export interface Category {
   name: string;
   color: string;
   icon?: string;
-  parentId?: string;
+  parentId?: string | null;
   userId: string;
 }
 

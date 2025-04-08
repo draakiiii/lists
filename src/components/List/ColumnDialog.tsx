@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Column } from '@/types/list';
 
 // Componentes simplificados para evitar dependencias problemáticas
@@ -81,6 +81,15 @@ export const ColumnDialog: React.FC<ColumnDialogProps> = ({
 }) => {
   const [header, setHeader] = useState(initialData?.header || '');
   const [headerError, setHeaderError] = useState('');
+
+  // Actualizar el header cuando cambia initialData
+  useEffect(() => {
+    if (initialData) {
+      setHeader(initialData.header || '');
+    } else {
+      setHeader('');
+    }
+  }, [initialData]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

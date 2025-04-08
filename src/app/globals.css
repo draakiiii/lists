@@ -80,6 +80,12 @@
   .dark select option {
     @apply bg-background text-foreground;
   }
+
+  /* Estilos para input date en modo oscuro */
+  .dark input[type="date"] {
+    @apply text-foreground;
+    color-scheme: dark;
+  }
 }
 
 /* Estilos para el modo compacto */

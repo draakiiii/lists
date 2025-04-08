@@ -95,6 +95,19 @@ interface ItemDialogProps {
   mode: 'add' | 'edit';
 }
 
+// Add this helper function to get the full category path
+const getCategoryPath = (categoryId: string, categories: Category[]): string => {
+  const paths: string[] = [];
+  let currentCategory = categories.find(c => c.id === categoryId);
+  
+  while (currentCategory) {
+    paths.unshift(currentCategory.name);
+    currentCategory = categories.find(c => c.id === currentCategory?.parentId);
+  }
+  
+  return paths.join(' > ');
+};
+
 export const ItemDialog: React.FC<ItemDialogProps> = ({
   open,
   onOpenChange,
@@ -103,25 +116,59 @@ export const ItemDialog: React.FC<ItemDialogProps> = ({
   categories,
   mode,
 }) => {
-  const [title, setTitle] = useState(initialData?.title || '');
-  const [description, setDescription] = useState(initialData?.description || '');
-  const [categoryId, setCategoryId] = useState(initialData?.categoryId || '');
-  const [startDate, setStartDate] = useState(safeFormatDate(initialData?.startDate));
-  const [endDate, setEndDate] = useState(safeFormatDate(initialData?.endDate));
-  const [tags, setTags] = useState<string[]>(initialData?.tags || []);
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [mainCategoryId, setMainCategoryId] = useState('');
+  const [subcategoryId, setSubcategoryId] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [titleError, setTitleError] = useState('');
 
-  // Actualizar estados cuando cambia initialData
+  // Organize categories into main categories and subcategories
+  const mainCategories = categories.filter(c => !c.parentId);
+  const subcategories = categories.filter(c => c.parentId === mainCategoryId);
+
+  // Update all form fields when initialData changes
   useEffect(() => {
     if (initialData) {
       setTitle(initialData.title || '');
       setDescription(initialData.description || '');
-      setCategoryId(initialData.categoryId || '');
       setStartDate(safeFormatDate(initialData.startDate));
       setEndDate(safeFormatDate(initialData.endDate));
-      setTags(initialData.tags || []);
+
+      // Handle category initialization
+      if (initialData.categoryId) {
+        const category = categories.find(c => c.id === initialData.categoryId);
+        if (category) {
+          if (category.parentId) {
+            setMainCategoryId(category.parentId);
+            setSubcategoryId(category.id);
+          } else {
+            setMainCategoryId(category.id);
+            setSubcategoryId('');
+          }
+        }
+      } else {
+        setMainCategoryId('');
+        setSubcategoryId('');
+      }
+    } else {
+      // Reset form when there's no initialData
+      setTitle('');
+      setDescription('');
+      setMainCategoryId('');
+      setSubcategoryId('');
+      setStartDate('');
+      setEndDate('');
     }
-  }, [initialData]);
+  }, [initialData, categories]);
+
+  // Reset subcategory when main category changes
+  useEffect(() => {
+    if (!initialData) { // Only reset if we're not initializing from initialData
+      setSubcategoryId('');
+    }
+  }, [mainCategoryId, initialData]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -134,21 +181,29 @@ export const ItemDialog: React.FC<ItemDialogProps> = ({
     const itemData: any = {
       title,
       description: description.trim() !== '' ? description : null,
-      categoryId: categoryId !== '' ? categoryId : null,
+      categoryId: mainCategoryId || null,
       startDate: startDate ? new Date(startDate) : null,
       endDate: endDate ? new Date(endDate) : null,
-      tags: tags.length > 0 ? tags : null,
+      tags: null
     };
+
+    // Add subcategory as a tag if selected
+    if (subcategoryId) {
+      const subcategory = categories.find(c => c.id === subcategoryId);
+      if (subcategory) {
+        itemData.tags = [subcategory.name];
+      }
+    }
     
     onSubmit(itemData);
     
     // Reset form
     setTitle('');
     setDescription('');
-    setCategoryId('');
+    setMainCategoryId('');
+    setSubcategoryId('');
     setStartDate('');
     setEndDate('');
-    setTags([]);
     setTitleError('');
     onOpenChange(false);
   };
@@ -191,22 +246,44 @@ export const ItemDialog: React.FC<ItemDialogProps> = ({
           />
         </div>
         
-        <div className="space-y-2">
-          <label className="text-sm font-medium block text-foreground">
-            Category (optional)
-          </label>
-          <select
-            value={categoryId}
-            onChange={(e) => setCategoryId(e.target.value)}
-            className="flex h-10 w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm"
-          >
-            <option value="">Select a category</option>
-            {categories.map(category => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
-          </select>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium block text-foreground">
+              Category
+            </label>
+            <select
+              value={mainCategoryId}
+              onChange={(e) => setMainCategoryId(e.target.value)}
+              className="flex h-10 w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm"
+            >
+              <option value="">Select a category</option>
+              {mainCategories.map(category => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {mainCategoryId && subcategories.length > 0 && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium block text-foreground">
+                Subcategory Tag (optional)
+              </label>
+              <select
+                value={subcategoryId}
+                onChange={(e) => setSubcategoryId(e.target.value)}
+                className="flex h-10 w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm"
+              >
+                <option value="">Select a subcategory tag</option>
+                {subcategories.map(category => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
         
         <div className="grid grid-cols-2 gap-4">
@@ -242,9 +319,7 @@ export const ItemDialog: React.FC<ItemDialogProps> = ({
           >
             Cancel
           </SimpleButton>
-          <SimpleButton 
-            type="submit"
-          >
+          <SimpleButton type="submit">
             {mode === 'add' ? 'Add Item' : 'Save Changes'}
           </SimpleButton>
         </div>

@@ -5,12 +5,14 @@ import { List as ListType, ListItem, Column, Category } from '@/types/list';
 import { useRouter } from 'next/navigation';
 import { Statistics } from './Statistics';
 import { Button } from '@/components/ui/button';
+import { Badge } from '../../components/ui/badge';
 import { LuArrowLeft, LuPlus, LuSettings2, LuCalendar, LuCheck } from 'react-icons/lu';
 import { useAuth } from '@/providers/AuthProvider';
 import { settingsService } from '@/lib/services/settingsService';
 import { UserSettings } from '@/types/settings';
 import { listService } from '@/lib/services/listService';
 import { Timestamp } from 'firebase/firestore';
+import { Trash2 } from "lucide-react";
 
 // Componentes simplificados para evitar dependencias problemáticas
 const SimpleButton = ({ onClick, className, children, variant = "default" }: { 
@@ -325,6 +327,12 @@ export const List: React.FC<ListProps> = ({
     }
   };
 
+  const getCategoryName = (categoryId: string | null) => {
+    if (!categoryId) return '';
+    const category = categories.find(c => c.id === categoryId);
+    return category ? category.name : '';
+  };
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between p-4 border-b">
@@ -439,82 +447,64 @@ export const List: React.FC<ListProps> = ({
                                             }`}
                                             onClick={() => onEditItem(item)}
                                           >
-                                            <h4 className="font-medium text-foreground">{item.title}</h4>
+                                            <div className="flex items-center gap-2 mb-2">
+                                              <h4 className="font-medium text-foreground truncate flex-grow">
+                                                {item.title}
+                                              </h4>
+                                              {item.categoryId && (settings?.showCategoryLabels || settings?.showCategoryIcons) && (
+                                                <Badge 
+                                                  variant={settings?.disableCategoryColors ? "secondary" : "outline"}
+                                                  className="text-xs"
+                                                  style={!settings?.disableCategoryColors && categories.find(c => c.id === item.categoryId)?.color ? {
+                                                    backgroundColor: categories.find(c => c.id === item.categoryId)?.color,
+                                                    color: '#fff',
+                                                    borderColor: 'transparent'
+                                                  } : undefined}
+                                                >
+                                                  {settings?.showCategoryIcons && categories.find(c => c.id === item.categoryId)?.icon}
+                                                  {settings?.showCategoryLabels && (
+                                                    <>{' '}{getCategoryName(item.categoryId)}</>
+                                                  )}
+                                                </Badge>
+                                              )}
+                                            </div>
                                             {settings?.showItemDescription && item.description && (
-                                              <p className="text-sm text-muted-foreground mt-1 break-words whitespace-pre-wrap">  
+                                              <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
                                                 {item.description}
                                               </p>
                                             )}
                                             {settings?.showItemDates && (item.startDate || item.endDate) && (
-                                              <div className="flex flex-wrap gap-2 mt-2 text-xs text-muted-foreground">
-                                                {(() => {
-                                                  const start = safeFormatDate(item.startDate);
-                                                  const end = safeFormatDate(item.endDate);
-                                                  
-                                                  if (start && end) {
-                                                    return (
-                                                      <div className="flex items-center gap-1">
+                                              <div className="flex gap-4 mt-2 text-xs text-muted-foreground">
+                                                {item.startDate && item.endDate ? (
+                                                  <span className="flex items-center gap-1">
+                                                    <LuCalendar className="h-3 w-3" />
+                                                    {safeFormatDate(item.startDate)?.toLocaleDateString() || 'N/A'} - {safeFormatDate(item.endDate)?.toLocaleDateString() || 'N/A'}
+                                                  </span>
+                                                ) : (
+                                                  <>
+                                                    {item.startDate && (
+                                                      <span className="flex items-center gap-1">
                                                         <LuCalendar className="h-3 w-3" />
-                                                        <span>
-                                                          {start.toLocaleDateString()} - {end.toLocaleDateString()}
-                                                        </span>
-                                                      </div>
-                                                    );
-                                                  }
-                                                  
-                                                  return (
-                                                    <>
-                                                      {start && (
-                                                        <div className="flex items-center gap-1">
-                                                          <LuCalendar className="h-3 w-3" />
-                                                          <span>{start.toLocaleDateString()}</span>
-                                                        </div>
-                                                      )}
-                                                      {end && (
-                                                        <div className="flex items-center gap-1">
-                                                          <LuCheck className="h-3 w-3" />
-                                                          <span>{end.toLocaleDateString()}</span>
-                                                        </div>
-                                                      )}
-                                                    </>
-                                                  );
-                                                })()}
+                                                        {safeFormatDate(item.startDate)?.toLocaleDateString() || 'N/A'}
+                                                      </span>
+                                                    )}
+                                                    {item.endDate && (
+                                                      <span className="flex items-center gap-1">
+                                                        <LuCalendar className="h-3 w-3" />
+                                                        End: {safeFormatDate(item.endDate)?.toLocaleDateString() || 'N/A'}
+                                                      </span>
+                                                    )}
+                                                  </>
+                                                )}
                                               </div>
                                             )}
                                             {settings?.showItemTags && item.tags && item.tags.length > 0 && (
                                               <div className="flex flex-wrap gap-1 mt-2">
                                                 {item.tags.map((tag, index) => (
-                                                  <span
-                                                    key={index}
-                                                    className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-secondary text-foreground"
-                                                  >
+                                                  <Badge key={index} variant="outline" className="text-xs">
                                                     {tag}
-                                                  </span>
+                                                  </Badge>
                                                 ))}
-                                              </div>
-                                            )}
-                                            {(settings?.showCategoryLabels || settings?.showCategoryIcons) && item.categoryId && (
-                                              <div className="flex items-center gap-1 mt-2">
-                                                {categories.map(category => {
-                                                  if (category.id === item.categoryId) {
-                                                    return (
-                                                      <div 
-                                                        key={category.id}
-                                                        className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs"
-                                                        style={{ 
-                                                          backgroundColor: category.color,
-                                                          color: '#fff'
-                                                        }}
-                                                      >
-                                                        {settings?.showCategoryIcons && category.icon}
-                                                        {settings?.showCategoryLabels && (
-                                                          <span>{category.name}</span>
-                                                        )}
-                                                      </div>
-                                                    );
-                                                  }
-                                                  return null;
-                                                })}
                                               </div>
                                             )}
                                           </div>
