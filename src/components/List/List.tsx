@@ -5,11 +5,12 @@ import { List as ListType, ListItem, Column, Category } from '@/types/list';
 import { useRouter } from 'next/navigation';
 import { Statistics } from './Statistics';
 import { Button } from '@/components/ui/button';
-import { LuArrowLeft, LuPlus, LuSettings2 } from 'react-icons/lu';
+import { LuArrowLeft, LuPlus, LuSettings2, LuCalendar, LuCheck } from 'react-icons/lu';
 import { useAuth } from '@/providers/AuthProvider';
 import { settingsService } from '@/lib/services/settingsService';
 import { UserSettings } from '@/types/settings';
 import { listService } from '@/lib/services/listService';
+import { Timestamp } from 'firebase/firestore';
 
 // Componentes simplificados para evitar dependencias problemáticas
 const SimpleButton = ({ onClick, className, children, variant = "default" }: { 
@@ -108,6 +109,26 @@ interface ListProps {
   onEditColumn: (column: Column) => void;
   onDeleteColumn: (columnId: string) => void;
 }
+
+// Función auxiliar para formatear fechas de forma segura
+const safeFormatDate = (dateValue: any): Date | null => {
+  if (!dateValue) return null;
+  
+  try {
+    // Si es un timestamp de Firestore
+    if (dateValue && typeof dateValue === 'object' && 'seconds' in dateValue) {
+      return new Date(dateValue.seconds * 1000);
+    }
+    
+    // Si es una fecha normal
+    const date = new Date(dateValue);
+    if (isNaN(date.getTime())) return null;
+    return date;
+  } catch (error) {
+    console.error('Error formatting date:', error);
+    return null;
+  }
+};
 
 export const List: React.FC<ListProps> = ({
   list,
@@ -293,6 +314,17 @@ export const List: React.FC<ListProps> = ({
       .sort((a, b) => a.order - b.order);
   }, [list.items]);
 
+  const handleSettingsChange = async (newSettings: UserSettings) => {
+    if (user) {
+      try {
+        await settingsService.updateUserSettings(user.uid, newSettings);
+        setSettings(newSettings);
+      } catch (error) {
+        console.error('Error updating settings:', error);
+      }
+    }
+  };
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between p-4 border-b">
@@ -408,12 +440,60 @@ export const List: React.FC<ListProps> = ({
                                             onClick={() => onEditItem(item)}
                                           >
                                             <h4 className="font-medium text-foreground">{item.title}</h4>
-                                            {item.description && (
+                                            {settings?.showItemDescription && item.description && (
                                               <p className="text-sm text-muted-foreground mt-1 break-words whitespace-pre-wrap">  
                                                 {item.description}
                                               </p>
                                             )}
-                                            {item.categoryId && (
+                                            {settings?.showItemDates && (item.startDate || item.endDate) && (
+                                              <div className="flex flex-wrap gap-2 mt-2 text-xs text-muted-foreground">
+                                                {(() => {
+                                                  const start = safeFormatDate(item.startDate);
+                                                  const end = safeFormatDate(item.endDate);
+                                                  
+                                                  if (start && end) {
+                                                    return (
+                                                      <div className="flex items-center gap-1">
+                                                        <LuCalendar className="h-3 w-3" />
+                                                        <span>
+                                                          {start.toLocaleDateString()} - {end.toLocaleDateString()}
+                                                        </span>
+                                                      </div>
+                                                    );
+                                                  }
+                                                  
+                                                  return (
+                                                    <>
+                                                      {start && (
+                                                        <div className="flex items-center gap-1">
+                                                          <LuCalendar className="h-3 w-3" />
+                                                          <span>{start.toLocaleDateString()}</span>
+                                                        </div>
+                                                      )}
+                                                      {end && (
+                                                        <div className="flex items-center gap-1">
+                                                          <LuCheck className="h-3 w-3" />
+                                                          <span>{end.toLocaleDateString()}</span>
+                                                        </div>
+                                                      )}
+                                                    </>
+                                                  );
+                                                })()}
+                                              </div>
+                                            )}
+                                            {settings?.showItemTags && item.tags && item.tags.length > 0 && (
+                                              <div className="flex flex-wrap gap-1 mt-2">
+                                                {item.tags.map((tag, index) => (
+                                                  <span
+                                                    key={index}
+                                                    className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-secondary text-foreground"
+                                                  >
+                                                    {tag}
+                                                  </span>
+                                                ))}
+                                              </div>
+                                            )}
+                                            {(settings?.showCategoryLabels || settings?.showCategoryIcons) && item.categoryId && (
                                               <div className="flex items-center gap-1 mt-2">
                                                 {categories.map(category => {
                                                   if (category.id === item.categoryId) {

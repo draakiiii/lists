@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/providers/AuthProvider';
 import { useTheme } from '@/providers/ThemeProvider';
@@ -11,6 +11,7 @@ import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useToast } from '@/components/ui/use-toast';
 import { LuDownload, LuUpload, LuTrash2 } from 'react-icons/lu';
+import { DisplaySettings } from '@/components/List/DisplaySettingsDialog';
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<UserSettings | null>(null);
@@ -45,17 +46,17 @@ export default function SettingsPage() {
     loadSettings();
   }, [user, router, toast]);
 
-  const handleSettingChange = async <K extends keyof UserSettings>(key: K, value: UserSettings[K]) => {
-    if (!user || !settings) return;
+  const handleSettingChange = async (newSettings: UserSettings) => {
+    if (!user) return;
 
     try {
-      const newSettings = { ...settings, [key]: value };
-      await settingsService.updateUserSettings(user.uid, { [key]: value });
+      await settingsService.updateUserSettings(user.uid, newSettings);
       setSettings(newSettings);
+      window.dispatchEvent(new Event('settingsChanged'));
 
       // Update theme if that setting was changed
-      if (key === 'theme') {
-        setTheme(value as 'light' | 'dark' | 'system');
+      if (newSettings.theme) {
+        setTheme(newSettings.theme as 'light' | 'dark' | 'system');
       }
 
       toast({
@@ -148,49 +149,30 @@ export default function SettingsPage() {
       <h1 className="text-2xl font-bold text-foreground mb-8">Settings</h1>
 
       <div className="space-y-8">
-        {/* Display Settings */}
-        <div className="bg-card rounded-lg p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-foreground mb-4">Display Settings</h2>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-medium text-foreground">Show Category Labels</h3>
-                <p className="text-sm text-muted-foreground">Show or hide category labels on items</p>
-              </div>
-              <Switch
-                checked={settings.showCategoryLabels}
-                onCheckedChange={(checked: boolean) => handleSettingChange('showCategoryLabels', checked)}
-              />
-            </div>
+        <div className="bg-card dark:bg-card/50 rounded-lg p-6 shadow-sm">
+          <DisplaySettings 
+            settings={settings}
+            onSettingsChange={handleSettingChange}
+          />
+        </div>
 
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-medium text-foreground">Show Category Icons</h3>
-                <p className="text-sm text-muted-foreground">Show or hide category icons on items</p>
-              </div>
-              <Switch
-                checked={settings.showCategoryIcons}
-                onCheckedChange={(checked: boolean) => handleSettingChange('showCategoryIcons', checked)}
-              />
+        {/* Theme Settings */}
+        <div className="bg-card dark:bg-card/50 rounded-lg p-6 shadow-sm">
+          <h2 className="text-lg font-semibold text-foreground mb-4">Theme Settings</h2>
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-medium text-foreground">Theme</h3>
+              <p className="text-sm text-muted-foreground">Choose your preferred theme</p>
             </div>
-
-            {/* Compact Mode and Default View hidden for now */}
-
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-medium text-foreground">Theme</h3>
-                <p className="text-sm text-muted-foreground">Choose your preferred theme</p>
-              </div>
-              <select
-                value={settings.theme}
-                onChange={(e) => handleSettingChange('theme', e.target.value as 'light' | 'dark' | 'system')}
-                className="block w-32 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring text-foreground"
-              >
-                <option value="light" className="bg-background text-foreground">Light</option>
-                <option value="dark" className="bg-background text-foreground">Dark</option>
-                <option value="system" className="bg-background text-foreground">System</option>
-              </select>
-            </div>
+            <select
+              value={settings.theme}
+              onChange={(e) => handleSettingChange({ ...settings, theme: e.target.value as 'light' | 'dark' | 'system' })}
+              className="block w-32 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring text-foreground"
+            >
+              <option value="light">Light</option>
+              <option value="dark">Dark</option>
+              <option value="system">System</option>
+            </select>
           </div>
         </div>
 
