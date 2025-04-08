@@ -13,7 +13,8 @@ import {
   LuSun, 
   LuMoon, 
   LuLayoutDashboard,
-  LuTags
+  LuTags,
+  LuSettings
 } from 'react-icons/lu';
 
 export function Navbar() {
@@ -72,6 +73,13 @@ export function Navbar() {
                 </Link>
                 
                 <Link 
+                  href="/settings"
+                  className="p-2 ml-3 rounded-full text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white focus:outline-none"
+                >
+                  <LuSettings className="h-5 w-5" />
+                </Link>
+                
+                <Link 
                   href="/profile"
                   className="p-2 ml-3 rounded-full text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white focus:outline-none"
                 >
@@ -116,6 +124,13 @@ export function Navbar() {
               onClick={() => setIsMenuOpen(false)}
             >
               Categories
+            </Link>
+            <Link
+              href="/settings"
+              className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Settings
             </Link>
             <Link
               href="/profile"

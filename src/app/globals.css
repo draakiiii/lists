@@ -75,6 +75,24 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Estilos para select y option en modo oscuro */
+  .dark select option {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Estilos para el modo compacto */
+.compact-mode .flex-1 > .flex > [data-rbd-droppable-id="columns"] > [data-rbd-draggable-id] {
+  @apply mb-2;
+}
+
+.compact-mode .flex-1 > .flex > [data-rbd-droppable-id="columns"] > [data-rbd-draggable-id] [data-rbd-draggable-id] {
+  @apply mb-1 p-2;
+}
+
+.compact-mode .flex-1 > .flex > [data-rbd-droppable-id="columns"] > [data-rbd-draggable-id] [data-rbd-droppable-context-id] {
+  @apply p-1;
 }
 
 body {

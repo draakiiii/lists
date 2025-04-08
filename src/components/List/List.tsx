@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import type { DroppableProvided, DroppableStateSnapshot, DraggableProvided, DraggableStateSnapshot } from '@hello-pangea/dnd';
 import { List as ListType, ListItem, Column, Category } from '@/types/list';
@@ -6,6 +6,10 @@ import { useRouter } from 'next/navigation';
 import { Statistics } from './Statistics';
 import { Button } from '@/components/ui/button';
 import { LuArrowLeft, LuPlus, LuSettings2 } from 'react-icons/lu';
+import { useAuth } from '@/providers/AuthProvider';
+import { settingsService } from '@/lib/services/settingsService';
+import { UserSettings } from '@/types/settings';
+import { listService } from '@/lib/services/listService';
 
 // Componentes simplificados para evitar dependencias problemáticas
 const SimpleButton = ({ onClick, className, children, variant = "default" }: { 
@@ -118,16 +122,44 @@ export const List: React.FC<ListProps> = ({
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [showStats, setShowStats] = useState(false);
+  const [settings, setSettings] = useState<UserSettings | null>(null);
   const router = useRouter();
+  const { user } = useAuth();
+
+  useEffect(() => {
+    const loadSettings = async () => {
+      if (user) {
+        const userSettings = await settingsService.getUserSettings(user.uid);
+        setSettings(userSettings);
+      }
+    };
+
+    loadSettings();
+
+    // Escuchar cambios en la configuración
+    const handleSettingsChange = () => {
+      loadSettings();
+    };
+
+    window.addEventListener('settingsChanged', handleSettingsChange);
+    return () => {
+      window.removeEventListener('settingsChanged', handleSettingsChange);
+    };
+  }, [user]);
 
   const onDragEnd = useCallback(
-    (result: DropResult) => {
+    async (result: DropResult) => {
       setIsDragging(false);
       const { source, destination, type } = result;
 
       if (!destination) return;
 
-      const newList = { ...list };
+      if (
+        source.droppableId === destination.droppableId &&
+        source.index === destination.index
+      ) {
+        return;
+      }
 
       if (type === 'COLUMN') {
         const columns = Array.from(list.columns);
@@ -135,44 +167,131 @@ export const List: React.FC<ListProps> = ({
         columns.splice(destination.index, 0, removed);
 
         // Update order
-        columns.forEach((column, index) => {
-          column.order = index;
-        });
+        const updatedColumns = columns.map((column, index) => ({
+          ...column,
+          order: index
+        }));
 
-        newList.columns = columns;
+        const newList = { ...list, columns: updatedColumns };
+
+        // Persist column order changes to Firebase
+        try {
+          await Promise.all(
+            updatedColumns.map(column =>
+              listService.updateColumn(list.id, column.id, { order: column.order })
+            )
+          );
+        } catch (error) {
+          console.error('Error updating column order:', error);
+          return;
+        }
       } else {
         const sourceColumn = list.columns.find(col => col.id === source.droppableId);
         const destColumn = list.columns.find(col => col.id === destination.droppableId);
 
         if (!sourceColumn || !destColumn) return;
 
-        const sourceItems = list.items.filter(item => item.columnId === sourceColumn.id);
-        const destItems = source.droppableId === destination.droppableId
-          ? sourceItems
-          : list.items.filter(item => item.columnId === destColumn.id);
+        // Create a new list with a shallow copy of items
+        const newList = {
+          ...list,
+          items: [...list.items]
+        };
 
-        const [removed] = sourceItems.splice(source.index, 1);
-        removed.columnId = destColumn.id;
-        destItems.splice(destination.index, 0, removed);
+        // Get all items for the affected columns, properly sorted
+        const isInSameColumn = source.droppableId === destination.droppableId;
+        
+        // Get and sort source column items
+        const sourceItems = [...newList.items]
+          .filter(item => item.columnId === source.droppableId)
+          .sort((a, b) => a.order - b.order);
 
-        // Update order for affected items
-        const updatedItems = list.items.map(item => {
-          if (item.columnId === sourceColumn.id) {
-            return sourceItems.find(i => i.id === item.id) || item;
+        // Get and sort destination column items
+        const destItems = isInSameColumn 
+          ? sourceItems 
+          : [...newList.items]
+              .filter(item => item.columnId === destination.droppableId)
+              .sort((a, b) => a.order - b.order);
+
+        // Remove the dragged item from source
+        const [movedItem] = sourceItems.splice(source.index, 1);
+        
+        // Update the columnId if moving between columns
+        if (!isInSameColumn) {
+          movedItem.columnId = destination.droppableId;
+        }
+
+        // Insert the item at the new position
+        destItems.splice(destination.index, 0, movedItem);
+
+        // Calculate new orders for affected items
+        if (isInSameColumn) {
+          // Update orders in the same column
+          sourceItems.forEach((item, index) => {
+            const listItem = newList.items.find(i => i.id === item.id);
+            if (listItem) {
+              listItem.order = index;
+            }
+          });
+        } else {
+          // Update orders in both columns
+          // First update source column orders
+          sourceItems.forEach((item, index) => {
+            const listItem = newList.items.find(i => i.id === item.id);
+            if (listItem) {
+              listItem.order = index;
+            }
+          });
+
+          // Then update destination column orders
+          destItems.forEach((item, index) => {
+            const listItem = newList.items.find(i => i.id === item.id);
+            if (listItem) {
+              listItem.order = index;
+            }
+          });
+        }
+
+        // Immediately update the state
+        onUpdateList(newList);
+
+        // Persist changes to Firebase
+        try {
+          const itemsToUpdate = [];
+
+          // Always include items from source column
+          itemsToUpdate.push(...sourceItems);
+
+          // If moving between columns, include destination items
+          if (!isInSameColumn) {
+            itemsToUpdate.push(...destItems);
           }
-          if (item.columnId === destColumn.id) {
-            return destItems.find(i => i.id === item.id) || item;
-          }
-          return item;
-        });
 
-        newList.items = updatedItems;
+          // Update all affected items in Firebase
+          await Promise.all(
+            itemsToUpdate.map(item => {
+              const listItem = newList.items.find(i => i.id === item.id);
+              if (listItem) {
+                return listService.updateItem(list.id, item.id, {
+                  columnId: listItem.columnId,
+                  order: listItem.order
+                });
+              }
+            }).filter(Boolean)
+          );
+        } catch (error) {
+          console.error('Error updating items:', error);
+        }
       }
-
-      onUpdateList(newList);
     },
     [list, onUpdateList]
   );
+
+  // Memoize the sorted items for each column
+  const getColumnItems = useCallback((columnId: string) => {
+    return [...list.items]
+      .filter(item => item.columnId === columnId)
+      .sort((a, b) => a.order - b.order);
+  }, [list.items]);
 
   return (
     <div className="flex flex-col h-full">
@@ -180,11 +299,11 @@ export const List: React.FC<ListProps> = ({
         <div className="flex items-center">
           <SimpleButton 
             variant="ghost" 
-            className="mr-4 text-foreground"
+            className="mr-4 text-foreground flex items-center"
             onClick={() => router.push('/dashboard')}
           >
-            <LuArrowLeft className="mr-2 h-4 w-4" />
-            Back to Dashboard
+            <LuArrowLeft className="h-4 w-4" />
+            <span className="ml-2">Back to Dashboard</span>
           </SimpleButton>
           <h1 className="text-2xl font-bold text-foreground">{list.name}</h1>
         </div>
@@ -224,7 +343,11 @@ export const List: React.FC<ListProps> = ({
                               ref={provided.innerRef}
                               {...provided.draggableProps}
                               className="flex flex-col bg-secondary/30 rounded-lg w-80"
-                              style={{ ...provided.draggableProps.style }}
+                              style={{ 
+                                ...provided.draggableProps.style,
+                                height: 'fit-content',
+                                maxHeight: 'calc(100vh - 12rem)'
+                              }}
                             >
                               <div
                                 {...provided.dragHandleProps}
@@ -260,60 +383,64 @@ export const List: React.FC<ListProps> = ({
                                   <div
                                     ref={provided.innerRef}
                                     {...provided.droppableProps}
-                                    className={`flex-1 p-2 min-h-[100px] overflow-y-auto ${
+                                    className={`flex-1 p-2 overflow-y-auto ${
                                       snapshot.isDraggingOver ? 'bg-secondary/50' : ''
                                     }`}
+                                    style={{
+                                      minHeight: '100px',
+                                      maxHeight: 'calc(100vh - 16rem)'
+                                    }}
                                   >
-                                    {list.items
-                                      .filter(item => item.columnId === column.id)
-                                      .sort((a, b) => a.order - b.order)
-                                      .map((item, index) => (
-                                        <Draggable
-                                          key={item.id}
-                                          draggableId={item.id}
-                                          index={index}
-                                        >
-                                          {(provided: DraggableProvided, snapshot: DraggableStateSnapshot) => (
-                                            <div
-                                              ref={provided.innerRef}
-                                              {...provided.draggableProps}
-                                              {...provided.dragHandleProps}
-                                              className={`p-3 mb-2 bg-background rounded-md shadow-sm ${
-                                                snapshot.isDragging ? 'shadow-lg' : ''
-                                              }`}
-                                              onClick={() => onEditItem(item)}
-                                            >
-                                              <h4 className="font-medium text-foreground">{item.title}</h4>
-                                              {item.description && (
-                                                <p className="text-sm text-muted-foreground mt-1 break-words whitespace-pre-wrap">  
-                                                  {item.description}
-                                                </p>
-                                              )}
-                                              {item.categoryId && (
-                                                <div className="flex items-center gap-1 mt-2">
-                                                  {categories.map(category => {
-                                                    if (category.id === item.categoryId) {
-                                                      return (
-                                                        <div 
-                                                          key={category.id}
-                                                          className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs"
-                                                          style={{ 
-                                                            backgroundColor: category.color,
-                                                            color: '#fff'
-                                                          }}
-                                                        >
-                                                          {category.icon} {category.name}
-                                                        </div>
-                                                      );
-                                                    }
-                                                    return null;
-                                                  })}
-                                                </div>
-                                              )}
-                                            </div>
-                                          )}
-                                        </Draggable>
-                                      ))}
+                                    {getColumnItems(column.id).map((item, index) => (
+                                      <Draggable
+                                        key={item.id}
+                                        draggableId={item.id}
+                                        index={index}
+                                      >
+                                        {(provided: DraggableProvided, snapshot: DraggableStateSnapshot) => (
+                                          <div
+                                            ref={provided.innerRef}
+                                            {...provided.draggableProps}
+                                            {...provided.dragHandleProps}
+                                            className={`p-3 mb-2 bg-background rounded-md shadow-sm ${
+                                              snapshot.isDragging ? 'shadow-lg' : ''
+                                            }`}
+                                            onClick={() => onEditItem(item)}
+                                          >
+                                            <h4 className="font-medium text-foreground">{item.title}</h4>
+                                            {item.description && (
+                                              <p className="text-sm text-muted-foreground mt-1 break-words whitespace-pre-wrap">  
+                                                {item.description}
+                                              </p>
+                                            )}
+                                            {item.categoryId && (
+                                              <div className="flex items-center gap-1 mt-2">
+                                                {categories.map(category => {
+                                                  if (category.id === item.categoryId) {
+                                                    return (
+                                                      <div 
+                                                        key={category.id}
+                                                        className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs"
+                                                        style={{ 
+                                                          backgroundColor: category.color,
+                                                          color: '#fff'
+                                                        }}
+                                                      >
+                                                        {settings?.showCategoryIcons && category.icon}
+                                                        {settings?.showCategoryLabels && (
+                                                          <span>{category.name}</span>
+                                                        )}
+                                                      </div>
+                                                    );
+                                                  }
+                                                  return null;
+                                                })}
+                                              </div>
+                                            )}
+                                          </div>
+                                        )}
+                                      </Draggable>
+                                    ))}
                                     {provided.placeholder}
                                     <SimpleButton
                                       variant="ghost"
