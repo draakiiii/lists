@@ -15,20 +15,30 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 interface StatisticsProps {
   list: List;
   categories: Category[];
+  isSearchActive?: boolean;
+  filteredItems?: ListItem[];
 }
 
-export const Statistics: React.FC<StatisticsProps> = ({ list, categories }) => {
+export const Statistics: React.FC<StatisticsProps> = ({ 
+  list, 
+  categories, 
+  isSearchActive = false,
+  filteredItems = list.items
+}) => {
   const stats = useMemo(() => {
-    const totalItems = list.items.length;
+    // Use filteredItems if search is active, otherwise use all list items
+    const itemsToAnalyze = isSearchActive ? filteredItems : list.items;
+    const totalItems = itemsToAnalyze.length;
     
     // Items by Column
-    const itemsByColumn = list.columns.map(column => ({
-      header: column.header,
-      count: list.items.filter(item => item.columnId === column.id).length,
-      percentage: totalItems > 0 
-        ? (list.items.filter(item => item.columnId === column.id).length / totalItems) * 100 
-        : 0
-    })).filter(column => column.count > 0);
+    const itemsByColumn = list.columns.map(column => {
+      const count = itemsToAnalyze.filter(item => item.columnId === column.id).length;
+      return {
+        header: column.header,
+        count,
+        percentage: totalItems > 0 ? (count / totalItems) * 100 : 0
+      };
+    }).filter(column => column.count > 0);
 
     // Get parent categories (categories without parentId)
     const parentCategories = categories.filter(category => !category.parentId);
@@ -51,7 +61,7 @@ export const Statistics: React.FC<StatisticsProps> = ({ list, categories }) => {
       );
       
       // All items in this parent category (not considering subcategories yet)
-      const categoryItems = list.items.filter(item => 
+      const categoryItems = itemsToAnalyze.filter(item => 
         item.categoryId === parentCategory.id
       );
       
@@ -129,7 +139,7 @@ export const Statistics: React.FC<StatisticsProps> = ({ list, categories }) => {
     }).filter(category => category.totalCount > 0);
     
     // Items without any category
-    const uncategorizedItems = list.items.filter(item => !item.categoryId);
+    const uncategorizedItems = itemsToAnalyze.filter(item => !item.categoryId);
     const uncategorizedCount = uncategorizedItems.length;
     const uncategorizedPercentage = totalItems > 0 ? (uncategorizedCount / totalItems) * 100 : 0;
 
@@ -141,14 +151,17 @@ export const Statistics: React.FC<StatisticsProps> = ({ list, categories }) => {
       uncategorizedCount,
       uncategorizedPercentage
     };
-  }, [list.items, list.columns, categories]);
+  }, [list.columns, categories, filteredItems, isSearchActive]);
 
   return (
     <Card className="w-full">
       <CardHeader>
         <CardTitle>List Statistics</CardTitle>
         <CardDescription>
-          Analysis of your list items and their distribution
+          {isSearchActive 
+            ? 'Analysis of your filtered list items'
+            : 'Analysis of your list items and their distribution'
+          }
         </CardDescription>
       </CardHeader>
       <CardContent>

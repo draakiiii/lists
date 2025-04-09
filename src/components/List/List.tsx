@@ -14,6 +14,7 @@ import { listService } from '@/lib/services/listService';
 import { Timestamp } from 'firebase/firestore';
 import { Trash2 } from "lucide-react";
 import { createPortal } from 'react-dom';
+import { SearchFilter } from './SearchFilter';
 
 // Componentes simplificados para evitar dependencias problemáticas
 const SimpleButton = ({ onClick, className, children, variant = "default" }: { 
@@ -199,6 +200,12 @@ export const List: React.FC<ListProps> = ({
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const router = useRouter();
   const { user } = useAuth();
+  
+  // Estado para elementos filtrados por búsqueda
+  const [filteredItems, setFilteredItems] = useState<ListItem[]>(list.items);
+  
+  // Estado para determinar si hay búsqueda activa
+  const [isSearchActive, setIsSearchActive] = useState(false);
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -220,6 +227,11 @@ export const List: React.FC<ListProps> = ({
       window.removeEventListener('settingsChanged', handleSettingsChange);
     };
   }, [user]);
+  
+  // Determinar si hay búsqueda activa comparando la longitud de los items filtrados con los originales
+  useEffect(() => {
+    setIsSearchActive(filteredItems.length !== list.items.length);
+  }, [filteredItems, list.items]);
 
   const onDragEnd = useCallback(
     async (result: DropResult) => {
@@ -362,10 +374,26 @@ export const List: React.FC<ListProps> = ({
 
   // Memoize the sorted items for each column
   const getColumnItems = useCallback((columnId: string) => {
-    return [...list.items]
+    return filteredItems
       .filter(item => item.columnId === columnId)
       .sort((a, b) => a.order - b.order);
-  }, [list.items]);
+  }, [filteredItems]);
+  
+  // Obtener solo las columnas que tienen elementos filtrados
+  const getFilteredColumns = useCallback(() => {
+    if (!isSearchActive) {
+      // Si no hay búsqueda activa, mostrar todas las columnas
+      return list.columns;
+    }
+    
+    // Filtrar las columnas para mostrar solo las que tienen elementos
+    // que coinciden con el filtro
+    return list.columns.filter(column => {
+      // Verificar si hay al menos un elemento filtrado en esta columna
+      const hasItems = filteredItems.some(item => item.columnId === column.id);
+      return hasItems;
+    });
+  }, [list.columns, filteredItems, isSearchActive]);
 
   const handleSettingsChange = async (newSettings: UserSettings) => {
     if (user) {
@@ -408,6 +436,14 @@ export const List: React.FC<ListProps> = ({
         </div>
       </div>
 
+      {/* Componente de búsqueda por título y descripción */}
+      <div className="p-4">
+        <SearchFilter 
+          items={list.items} 
+          onFilteredItemsChange={setFilteredItems} 
+        />
+      </div>
+
       <div className="flex-1 overflow-hidden">
         <div className="flex h-full">
           <DragDropContext
@@ -423,7 +459,7 @@ export const List: React.FC<ListProps> = ({
                       {...provided.droppableProps}
                       className="flex gap-4 min-h-[calc(100vh-12rem)]"
                     >
-                      {list.columns.map((column, index) => (
+                      {getFilteredColumns().map((column, index) => (
                         <Draggable
                           key={column.id}
                           draggableId={column.id}
@@ -447,7 +483,9 @@ export const List: React.FC<ListProps> = ({
                                 <h3 className="font-semibold text-foreground">{column.header}</h3>
                                 <div className="flex items-center gap-2">
                                   <span className="text-sm text-muted-foreground">
-                                    {list.items.filter(item => item.columnId === column.id).length}
+                                    {isSearchActive 
+                                      ? getColumnItems(column.id).length 
+                                      : list.items.filter(item => item.columnId === column.id).length}
                                   </span>
                                   <SimpleDropdown 
                                     trigger={
@@ -610,15 +648,17 @@ export const List: React.FC<ListProps> = ({
                         </Draggable>
                       ))}
                       {provided.placeholder}
-                      <div className="flex items-start">
-                        <SimpleButton
-                          onClick={onAddColumn}
-                          className="h-10 whitespace-nowrap inline-flex items-center"
-                        >
-                          <LuPlus className="mr-2 h-4 w-4" />
-                          Add Column
-                        </SimpleButton>
-                      </div>
+                      {!isSearchActive && (
+                        <div className="flex items-start">
+                          <SimpleButton
+                            onClick={onAddColumn}
+                            className="h-10 whitespace-nowrap inline-flex items-center"
+                          >
+                            <LuPlus className="mr-2 h-4 w-4" />
+                            Add Column
+                          </SimpleButton>
+                        </div>
+                      )}
                     </div>
                   )}
                 </Droppable>
@@ -627,7 +667,12 @@ export const List: React.FC<ListProps> = ({
           </DragDropContext>
           {showStats && (
             <div className="w-96 p-4 border-l overflow-y-auto">
-              <Statistics list={list} categories={categories} />
+              <Statistics 
+                list={list} 
+                categories={categories} 
+                isSearchActive={isSearchActive}
+                filteredItems={filteredItems}
+              />
             </div>
           )}
         </div>
