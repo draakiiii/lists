@@ -611,7 +611,7 @@ export const List: React.FC<ListProps> = ({
                                                     {item.endDate && (
                                                       <span className="flex items-center gap-1">
                                                         <LuCalendar className="h-3 w-3" />
-                                                        End: {safeFormatDate(item.endDate)?.toLocaleDateString() || 'N/A'}
+                                                        {safeFormatDate(item.endDate)?.toLocaleDateString() || 'N/A'}
                                                       </span>
                                                     )}
                                                   </>

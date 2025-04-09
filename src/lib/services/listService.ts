@@ -125,8 +125,21 @@ export const listService = {
   },
 
   async deleteColumn(listId: string, columnId: string): Promise<void> {
-    const docRef = doc(db, 'lists', listId, 'columns', columnId);
-    await deleteDoc(docRef);
+    const batch = writeBatch(db);
+    
+    // Delete column document
+    const columnRef = doc(db, 'lists', listId, 'columns', columnId);
+    batch.delete(columnRef);
+    
+    // Delete all items in the column
+    const itemsRef = collection(db, 'lists', listId, 'items');
+    const q = query(itemsRef, where('columnId', '==', columnId));
+    const itemsSnap = await getDocs(q);
+    itemsSnap.forEach(doc => {
+      batch.delete(doc.ref);
+    });
+    
+    await batch.commit();
   },
 
   // Items
