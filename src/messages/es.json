@@ -82,7 +82,8 @@
       "resetDialogDescription": "Esta acción no se puede deshacer. Eliminará permanentemente todas tus listas y configuraciones.",
       "deleteEverythingButton": "Eliminar Todo",
       "workInProgress": "En Desarrollo",
-      "featureInDevelopment": "Esta función está actualmente en desarrollo"
+      "featureInDevelopment": "Esta función está actualmente en desarrollo",
+      "loading": "Cargando..."
     },
     "common": {
       "backToDashboard": "Volver al Panel",

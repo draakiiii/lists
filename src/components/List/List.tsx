@@ -26,17 +26,17 @@ const SimpleButton = ({ onClick, className, children, variant = "default" }: {
 }) => {
   const getVariantClass = () => {
     switch (variant) {
-      case "ghost": return "bg-transparent hover:bg-secondary/50 text-foreground";
-      case "outline": return "border border-input bg-background text-foreground hover:bg-secondary/50";
-      case "destructive": return "bg-destructive text-destructive-foreground hover:bg-destructive/90";
-      default: return "bg-primary text-primary-foreground hover:bg-primary/90";
+      case "ghost": return "bg-transparent hover:bg-secondary/30 text-foreground transition-all duration-200";
+      case "outline": return "border border-input bg-background text-foreground hover:bg-secondary/30 hover:border-primary/50 transition-all duration-200";
+      case "destructive": return "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-sm transition-all duration-200";
+      default: return "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm transition-all duration-200";
     }
   };
   
   return (
     <button 
       onClick={onClick} 
-      className={`${getVariantClass()} rounded-md px-3 py-2 text-sm font-medium transition-colors ${className || ''}`}
+      className={`${getVariantClass()} rounded-lg px-3 py-2 text-sm font-medium transition-colors focus:ring-2 focus:ring-primary/25 focus:outline-none active:scale-95 ${className || ''}`}
     >
       {children}
     </button>
@@ -91,24 +91,32 @@ const SimpleDropdown = ({ trigger, children }: {
   
   return (
     <>
-      <div ref={triggerRef} onClick={() => setIsOpen(!isOpen)}>{trigger}</div>
+      <div 
+        ref={triggerRef} 
+        onClick={() => setIsOpen(!isOpen)}
+        className="cursor-pointer"
+      >
+        {trigger}
+      </div>
       {isOpen && typeof window !== 'undefined' && createPortal(
         <div 
           ref={dropdownRef}
-          className="fixed z-50 w-48 rounded-md shadow-lg bg-background border"
+          className="fixed z-50 min-w-56 rounded-lg shadow-lg bg-background border border-border animate-in fade-in-50 duration-100 overflow-hidden"
           style={{
             top: `${position.top}px`,
             left: `${position.left}px`
           }}
         >
-          {React.Children.map(children, child => {
-            if (React.isValidElement(child) && typeof child.props.onClick === 'function') {
-              return React.cloneElement(child as React.ReactElement<{ onClick?: () => void }>, {
-                onClick: () => handleItemClick(child.props.onClick as () => void)
-              });
-            }
-            return child;
-          })}
+          <div className="py-1">
+            {React.Children.map(children, child => {
+              if (React.isValidElement(child) && typeof child.props.onClick === 'function') {
+                return React.cloneElement(child as React.ReactElement<{ onClick?: () => void }>, {
+                  onClick: () => handleItemClick(child.props.onClick as () => void)
+                });
+              }
+              return child;
+            })}
+          </div>
         </div>,
         document.body
       )}
@@ -123,7 +131,7 @@ const SimpleDropdownItem = ({ onClick, className, children }: {
 }) => (
   <div 
     onClick={onClick} 
-    className={`block px-4 py-2 text-sm text-foreground hover:bg-secondary/50 cursor-pointer ${className || ''}`}
+    className={`block px-4 py-3 text-base text-foreground hover:bg-secondary/30 transition-colors duration-150 cursor-pointer ${className || ''}`}
   >
     {children}
   </div>
@@ -497,24 +505,33 @@ export const List: React.FC<ListProps> = ({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between p-4 border-b">
+      <div className="flex items-center justify-between p-4 border-b bg-secondary/10">
         <div className="flex items-center">
           <SimpleButton 
             variant="ghost" 
-            className="mr-4 text-foreground flex items-center"
+            className="mr-4 text-foreground flex items-center hover:bg-secondary/30 group transition-all duration-200"
             onClick={() => router.push('/dashboard')}
           >
-            <LuArrowLeft className="h-4 w-4" />
+            <LuArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform duration-200" />
             <span className="ml-2">{tList('backToDashboard')}</span>
           </SimpleButton>
           <h1 className="text-2xl font-bold text-foreground">{list.name}</h1>
         </div>
         <div className="flex items-center gap-2">
           <SimpleButton 
-            variant="ghost"
+            variant="outline"
+            className="group"
             onClick={() => setShowStats(!showStats)}
           >
-            {showStats ? tList('hideStats') : tList('showStats')}
+            {showStats ? (
+              <>
+                <span className="group-hover:opacity-70 transition-opacity duration-200">{tList('hideStats')}</span>
+              </>
+            ) : (
+              <>
+                <span className="group-hover:opacity-70 transition-opacity duration-200">{tList('showStats')}</span>
+              </>
+            )}
           </SimpleButton>
         </div>
       </div>
@@ -571,7 +588,7 @@ export const List: React.FC<ListProps> = ({
                             <div
                               ref={provided.innerRef}
                               {...provided.draggableProps}
-                              className="flex flex-col bg-secondary/30 rounded-lg w-80"
+                              className="flex flex-col bg-secondary/20 rounded-lg w-80 shadow-sm border border-border/30"
                               style={{ 
                                 ...provided.draggableProps.style,
                                 height: 'fit-content',
@@ -580,7 +597,7 @@ export const List: React.FC<ListProps> = ({
                             >
                               <div
                                 {...provided.dragHandleProps}
-                                className="flex items-center justify-between p-3 bg-secondary/50 rounded-t-lg"
+                                className="flex items-center justify-between p-3 bg-secondary/30 rounded-t-lg border-b border-border/30"
                               >
                                 <h3 className="font-semibold text-foreground">{column.header}</h3>
                                 <div className="flex items-center gap-2">
@@ -591,18 +608,20 @@ export const List: React.FC<ListProps> = ({
                                   </span>
                                   <SimpleDropdown 
                                     trigger={
-                                      <SimpleButton variant="ghost" className="h-8 w-8 p-0 flex items-center justify-center text-foreground">
-                                        <LuSettings2 className="h-4 w-4" />
+                                      <SimpleButton variant="ghost" className="h-10 w-10 p-0 flex items-center justify-center text-foreground hover:bg-secondary/40 rounded-full">
+                                        <LuSettings2 className="h-5 w-5" />
                                       </SimpleButton>
                                     }
                                   >
-                                    <SimpleDropdownItem onClick={() => onEditColumn(column)} className="text-foreground bg-background hover:bg-secondary">
+                                    <SimpleDropdownItem onClick={() => onEditColumn(column)} className="text-foreground bg-background hover:bg-secondary/30 flex items-center">
+                                      <LuPencil className="h-5 w-5 mr-2" />
                                       {t('editColumn')}
                                     </SimpleDropdownItem>
                                     <SimpleDropdownItem 
-                                      className="text-red-500 dark:text-red-400 bg-background hover:bg-secondary"
+                                      className="text-red-500 dark:text-red-400 bg-background hover:bg-secondary/30 flex items-center"
                                       onClick={() => onDeleteColumn(column.id)}
                                     >
+                                      <LuTrash className="h-5 w-5 mr-2" />
                                       {t('deleteColumn')}
                                     </SimpleDropdownItem>
                                   </SimpleDropdown>
@@ -633,8 +652,8 @@ export const List: React.FC<ListProps> = ({
                                             ref={provided.innerRef}
                                             {...provided.draggableProps}
                                             {...provided.dragHandleProps}
-                                            className={`p-3 mb-2 bg-background rounded-md shadow-sm ${
-                                              snapshot.isDragging ? 'shadow-lg' : ''
+                                            className={`p-3 mb-2 bg-background rounded-lg shadow hover:shadow-md transition-all duration-200 transform hover:-translate-y-1 ${
+                                              snapshot.isDragging ? 'shadow-lg ring-2 ring-primary/20 scale-[1.02]' : ''
                                             }`}
                                           >
                                             <div className="flex items-center gap-2 mb-2">
@@ -649,24 +668,24 @@ export const List: React.FC<ListProps> = ({
                                               <div onClick={(e) => e.stopPropagation()}>
                                                 <SimpleDropdown 
                                                   trigger={
-                                                    <SimpleButton variant="ghost" className="h-8 px-2 flex items-center justify-center text-foreground hover:bg-secondary/50">
-                                                      <LuSettings2 className="h-4 w-4" />
+                                                    <SimpleButton variant="ghost" className="h-10 w-10 p-0 flex items-center justify-center text-foreground hover:bg-secondary/40 rounded-full">
+                                                      <LuSettings2 className="h-5 w-5" />
                                                     </SimpleButton>
                                                   }
                                                 >
-                                                  <SimpleDropdownItem onClick={() => onEditItem(item)} className="text-foreground bg-background hover:bg-secondary">
-                                                    <LuSettings2 className="h-4 w-4 mr-2 inline-block" />
+                                                  <SimpleDropdownItem onClick={() => onEditItem(item)} className="text-foreground bg-background hover:bg-secondary/30 flex items-center">
+                                                    <LuPencil className="h-5 w-5 mr-2" />
                                                     {t('editItem')}
                                                   </SimpleDropdownItem>
-                                                  <SimpleDropdownItem onClick={() => onDuplicateItem(item)} className="text-foreground bg-background hover:bg-secondary">
-                                                    <LuCopy className="h-4 w-4 mr-2 inline-block" />
+                                                  <SimpleDropdownItem onClick={() => onDuplicateItem(item)} className="text-foreground bg-background hover:bg-secondary/30 flex items-center">
+                                                    <LuCopy className="h-5 w-5 mr-2" />
                                                     {t('duplicateItem')}
                                                   </SimpleDropdownItem>
                                                   <SimpleDropdownItem 
                                                     onClick={() => onDeleteItem(item.id)} 
-                                                    className="text-red-500 dark:text-red-400 bg-background hover:bg-secondary"
+                                                    className="text-red-500 dark:text-red-400 bg-background hover:bg-secondary/30 flex items-center"
                                                   >
-                                                    <LuTrash2 className="h-4 w-4 mr-2 inline-block" />
+                                                    <LuTrash2 className="h-5 w-5 mr-2" />
                                                     {t('deleteItem')}
                                                   </SimpleDropdownItem>
                                                 </SimpleDropdown>
@@ -742,10 +761,10 @@ export const List: React.FC<ListProps> = ({
                                     {provided.placeholder}
                                     <SimpleButton
                                       variant="ghost"
-                                      className="w-full mt-2 text-foreground hover:bg-secondary/50"
+                                      className="w-full mt-2 text-foreground hover:bg-secondary/40 group transition-all duration-200 flex items-center justify-center"
                                       onClick={() => onAddItem(column.id)}
                                     >
-                                      <LuPlus className="mr-2 h-4 w-4" />
+                                      <LuPlus className="mr-2 h-4 w-4 group-hover:scale-110 transition-transform duration-200" />
                                       {t('addItem')}
                                     </SimpleButton>
                                   </div>
@@ -760,9 +779,9 @@ export const List: React.FC<ListProps> = ({
                         <div className="flex items-start">
                           <SimpleButton
                             onClick={onAddColumn}
-                            className="h-10 whitespace-nowrap inline-flex items-center"
+                            className="h-10 whitespace-nowrap inline-flex items-center bg-primary/90 hover:bg-primary transition-all duration-200 shadow-sm group"
                           >
-                            <LuPlus className="mr-2 h-4 w-4" />
+                            <LuPlus className="mr-2 h-4 w-4 group-hover:scale-110 transition-transform duration-200" />
                             {t('addColumn')}
                           </SimpleButton>
                         </div>

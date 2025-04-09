@@ -187,11 +187,11 @@
       "featureSettings": "Feature Settings",
       "autoIncrementDuplicates": "Auto-increment Duplicates",
       "autoIncrementDuplicatesDesc": "Automatically increment numbers when duplicating items (e.g. \"Book, volume 1\" → \"Book, volume 2\")",
-      "exampleTask": "Example Task",
-      "exampleDescription": "This is an example description to show how your items will look.",
+      "exampleTask": "Title",
+      "exampleDescription": "Test description.",
       "exampleTag1": "example",
       "exampleTag2": "preview",
-      "previewCategoryName": "Preview Category"
+      "previewCategoryName": "Category"
     },
     "lists": {
       "createTitle": "Create New List",
