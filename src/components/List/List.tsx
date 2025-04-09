@@ -207,6 +207,9 @@ export const List: React.FC<ListProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [settings, setSettings] = useState<UserSettings | null>(null);
+  const [isScrolling, setIsScrolling] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
   const router = useRouter();
   const { user } = useAuth();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -221,6 +224,33 @@ export const List: React.FC<ListProps> = ({
   
   // Estado para determinar si hay búsqueda activa
   const [isSearchActive, setIsSearchActive] = useState(false);
+
+  // Mouse event handlers for desktop drag scrolling
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!scrollContainerRef.current) return;
+    
+    e.preventDefault(); // Prevent text selection
+    setIsScrolling(true);
+    setStartX(e.pageX - scrollContainerRef.current.offsetLeft);
+    setScrollLeft(scrollContainerRef.current.scrollLeft);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isScrolling || !scrollContainerRef.current) return;
+    
+    e.preventDefault(); // Prevent text selection
+    const x = e.pageX - scrollContainerRef.current.offsetLeft;
+    const walk = (x - startX) * 2;
+    scrollContainerRef.current.scrollLeft = scrollLeft - walk;
+  };
+
+  const handleMouseUp = () => {
+    setIsScrolling(false);
+  };
+
+  const handleMouseLeave = () => {
+    setIsScrolling(false);
+  };
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -339,25 +369,40 @@ export const List: React.FC<ListProps> = ({
       }
 
       if (type === 'COLUMN') {
-        const columns = Array.from(list.columns);
-        const [removed] = columns.splice(source.index, 1);
-        columns.splice(destination.index, 0, removed);
+        console.log('DRAG END - Initial columns:', list.columns);
+        
+        // Get sorted columns first
+        const sortedColumns = [...list.columns].sort((a, b) => a.order - b.order);
+        console.log('DRAG END - Sorted columns before move:', sortedColumns);
+        
+        const [removed] = sortedColumns.splice(source.index, 1);
+        sortedColumns.splice(destination.index, 0, removed);
+        console.log('DRAG END - Columns after move:', sortedColumns);
 
         // Update order
-        const updatedColumns = columns.map((column, index) => ({
+        const updatedColumns = sortedColumns.map((column, index) => ({
           ...column,
           order: index
         }));
+        console.log('DRAG END - Updated columns with new order:', updatedColumns);
 
-        const newList = { ...list, columns: updatedColumns };
+        // Immediately update the local state with sorted columns
+        const newList = { 
+          ...list,
+          columns: updatedColumns.sort((a, b) => a.order - b.order)
+        };
+        console.log('DRAG END - New list being set:', newList);
+        onUpdateList(newList);
 
         // Persist column order changes to Firebase
         try {
+          console.log('DRAG END - Updating Firebase...');
           await Promise.all(
             updatedColumns.map(column =>
               listService.updateColumn(list.id, column.id, { order: column.order })
             )
           );
+          console.log('DRAG END - Firebase update completed');
         } catch (error) {
           console.error('Error updating column order:', error);
           return;
@@ -472,19 +517,38 @@ export const List: React.FC<ListProps> = ({
   
   // Obtener solo las columnas que tienen elementos filtrados
   const getFilteredColumns = useCallback(() => {
+    console.log('getFilteredColumns - Current list:', list);
+    console.log('getFilteredColumns - Current list.columns:', list.columns);
+    
+    // Asegurarse de que list.columns existe y no está vacío
+    if (!list.columns || list.columns.length === 0) {
+      console.log('getFilteredColumns - No columns found');
+      return [];
+    }
+    
+    // Siempre ordenar las columnas por order
+    const sortedColumns = [...list.columns].sort((a, b) => a.order - b.order);
+    console.log('getFilteredColumns - Sorted columns:', sortedColumns);
+    
     if (!isSearchActive) {
-      // Si no hay búsqueda activa, mostrar todas las columnas
-      return list.columns;
+      return sortedColumns;
     }
     
     // Filtrar las columnas para mostrar solo las que tienen elementos
-    // que coinciden con el filtro
-    return list.columns.filter(column => {
+    // que coinciden con el filtro, manteniendo el orden
+    const filteredAndSorted = sortedColumns.filter(column => {
       // Verificar si hay al menos un elemento filtrado en esta columna
       const hasItems = filteredItems.some(item => item.columnId === column.id);
       return hasItems;
     });
-  }, [list.columns, filteredItems, isSearchActive]);
+    
+    return filteredAndSorted;
+  }, [list, list.columns, filteredItems, isSearchActive]);
+
+  // Effect para actualizar los items filtrados cuando cambia la lista
+  useEffect(() => {
+    setFilteredItems(list.items);
+  }, [list.items]);
 
   const handleSettingsChange = async (newSettings: UserSettings) => {
     if (user) {
@@ -568,7 +632,11 @@ export const List: React.FC<ListProps> = ({
           >
             <div 
               ref={scrollContainerRef}
-              className="flex-1 overflow-x-auto overflow-y-hidden p-4 touch-pan-x"
+              className={`flex-1 overflow-x-auto overflow-y-hidden p-4 touch-pan-x cursor-grab active:cursor-grabbing ${isScrolling ? 'select-none' : ''}`}
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseLeave}
             >
               <div className="flex gap-4 items-start">
                 <Droppable droppableId="columns" direction="horizontal" type="COLUMN">

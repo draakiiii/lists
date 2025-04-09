@@ -68,6 +68,24 @@ export default function ListPage() {
     fetchListData();
   }, [params.id, user, router, toast]);
 
+  // Handle list updates
+  const handleUpdateList = useCallback((updatedList: List) => {
+    console.log('handleUpdateList - Received list:', updatedList);
+    console.log('handleUpdateList - Current columns:', columns);
+    console.log('handleUpdateList - Updated columns:', updatedList.columns);
+    
+    // Update both list and columns state
+    setList(updatedList);
+    if (updatedList.columns) {
+      const sortedColumns = [...updatedList.columns].sort((a, b) => a.order - b.order);
+      console.log('handleUpdateList - Setting sorted columns:', sortedColumns);
+      setColumns(sortedColumns);
+    }
+    if (updatedList.items) {
+      setItems(updatedList.items);
+    }
+  }, []);
+
   // Dialog states
   const [columnDialog, setColumnDialog] = useState({
     open: false,
@@ -300,15 +318,14 @@ export default function ListPage() {
 
   return (
     <div className="h-full">
-      
       <ListComponent
         list={{
-          ...list,
-          columns,
-          items
+          ...list!,
+          columns: columns,
+          items: items
         }}
         categories={categories}
-        onUpdateList={setList}
+        onUpdateList={handleUpdateList}
         onAddItem={handleAddItem}
         onEditItem={handleEditItem}
         onDeleteItem={handleDeleteItem}

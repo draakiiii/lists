@@ -131,7 +131,8 @@
       "categories": "Categorías",
       "settings": "Configuración",
       "profile": "Perfil",
-      "logout": "Cerrar sesión"
+      "logout": "Cerrar sesión",
+      "saving": "Guardando..."
     },
     "categories": {
       "manageTitle": "Gestionar Categorías",

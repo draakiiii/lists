@@ -61,7 +61,7 @@ export default function EditListPage() {
     try {
       await listService.updateList(params.id as string, {
         name: name.trim(),
-        description: description.trim() || undefined,
+        description: description.trim(),
       });
       toast({ title: tCommon('success'), description: tCommon('listUpdated') });
       router.push(`/lists/${params.id}`);
