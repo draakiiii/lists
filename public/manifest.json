@@ -1,0 +1,17 @@
+{
+    "name": "ListTrack",
+    "short_name": "ListTrack",
+    "description": "Track and organize your lists efficiently",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#f9fafb",
+    "theme_color": "#f9fafb",
+    "icons": [
+      {
+        "src": "/icon.png",
+        "sizes": "512x512",
+        "type": "image/png",
+        "purpose": "any maskable"
+      }
+    ]
+  }

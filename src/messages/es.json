@@ -188,11 +188,11 @@
       "featureSettings": "Configuración de Funcionalidades",
       "autoIncrementDuplicates": "Autoincrementar Duplicados",
       "autoIncrementDuplicatesDesc": "Incrementar automáticamente los números al duplicar elementos (ej. \"Libro, volumen 1\" → \"Libro, volumen 2\")",
-      "exampleTask": "Tarea de Ejemplo",
-      "exampleDescription": "Esta es una descripción de ejemplo para mostrar cómo se verán tus elementos.",
+      "exampleTask": "Título",
+      "exampleDescription": "Ejemplo de descripción",
       "exampleTag1": "ejemplo",
       "exampleTag2": "vista previa",
-      "previewCategoryName": "Categoría de Vista Previa"
+      "previewCategoryName": "Categoría"
     },
     "lists": {
       "createTitle": "Crear Nueva Lista",

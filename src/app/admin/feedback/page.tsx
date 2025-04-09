@@ -152,7 +152,7 @@ export default function AdminFeedback() {
     <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
       <div className="px-4 py-6 sm:px-0">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-3xl font-bold text-foreground">
             {t('admin.feedbackDashboard')}
           </h1>
           <div className="flex space-x-2">
@@ -161,10 +161,10 @@ export default function AdminFeedback() {
                 <SelectValue placeholder={t('admin.filterByStatus')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem className="text-foreground" value="all">{t('admin.all')}</SelectItem>
-                <SelectItem className="text-foreground" value="pending">{t('admin.pending')}</SelectItem>
-                <SelectItem className="text-foreground" value="reviewed">{t('admin.reviewed')}</SelectItem>
-                <SelectItem className="text-foreground" value="resolved">{t('admin.resolved')}</SelectItem>
+                <SelectItem value="all">{t('admin.all')}</SelectItem>
+                <SelectItem value="pending">{t('admin.pending')}</SelectItem>
+                <SelectItem value="reviewed">{t('admin.reviewed')}</SelectItem>
+                <SelectItem value="resolved">{t('admin.resolved')}</SelectItem>
               </SelectContent>
             </Select>
             <Button 
@@ -178,32 +178,32 @@ export default function AdminFeedback() {
           </div>
         </div>
 
-        {filteredFeedbacks.length === 0 ? (
-          <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg shadow">
-            <p className="text-gray-500 dark:text-gray-400">
-              {t('admin.noEntries')}
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {filteredFeedbacks.map((feedback) => (
+        <div className="space-y-4">
+          {filteredFeedbacks.length === 0 ? (
+            <div className="text-center py-12 bg-card rounded-lg shadow">
+              <p className="text-muted-foreground">
+                {t('admin.noEntries')}
+              </p>
+            </div>
+          ) : (
+            filteredFeedbacks.map((feedback) => (
               <Card key={feedback.id} className="overflow-hidden">
-                <CardHeader className="bg-gray-50 dark:bg-gray-800 pb-2">
+                <CardHeader className="bg-muted pb-2">
                   <div className="flex justify-between items-center">
-                    <CardTitle className="text-lg font-medium text-foreground">{feedback.subject}</CardTitle>
+                    <CardTitle className="text-lg font-medium">{feedback.subject}</CardTitle>
                     <div className="flex space-x-2">
                       {getTypeLabel(feedback.type)}
                       {getStatusBadge(feedback.status)}
                     </div>
                   </div>
-                  <div className="text-sm text-gray-500 mt-1">
+                  <div className="text-sm text-muted-foreground mt-1">
                     {t('admin.from')}: {feedback.userEmail} • {new Date(feedback.createdAt.toDate()).toLocaleString()}
                   </div>
                 </CardHeader>
-                <CardContent className="pt-4 text-foreground">
+                <CardContent className="pt-4">
                   <div className="whitespace-pre-line">{feedback.message}</div>
                 </CardContent>
-                <CardFooter className="bg-gray-50 dark:bg-gray-800 flex justify-end space-x-2">
+                <CardFooter className="bg-muted flex justify-end space-x-2">
                   <Button 
                     variant="outline" 
                     size="sm"
@@ -236,12 +236,12 @@ export default function AdminFeedback() {
                   </Button>
                 </CardFooter>
               </Card>
-            ))}
-          </div>
-        )}
+            ))
+          )}
+        </div>
 
-        <footer className="mt-12 text-center text-sm text-gray-500 dark:text-gray-400 pb-4">
-          <p>Created by <a href="https://x.com/draakiiii" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-indigo-400 hover:underline">@draakiiii</a></p>
+        <footer className="mt-12 text-center text-sm text-muted-foreground pb-4">
+          <p>Created by <a href="https://x.com/draakiiii" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">@draakiiii</a></p>
         </footer>
       </div>
     </div>

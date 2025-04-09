@@ -7,7 +7,7 @@ import { listService } from '@/lib/services/listService';
 import { List } from '@/types/list';
 import Link from 'next/link';
 import { LuTrash, LuPencil, LuPlus, LuInfo, LuRefreshCw, LuBug, LuSend } from 'react-icons/lu';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { useTranslations } from 'next-intl';
@@ -180,23 +180,6 @@ export default function Dashboard() {
             {t('list.yourLists')}
           </h1>
           <div className="flex space-x-2">
-            {isAdmin && (
-              <Button 
-                variant="outline" 
-                onClick={() => router.push('/admin/feedback')}
-                className="flex items-center space-x-1 text-foreground"
-              >
-                <span>{t('admin.adminPanel')}</span>
-              </Button>
-            )}
-            <Button 
-              variant="outline" 
-              onClick={() => setFeedbackDialog(true)}
-              className="flex items-center space-x-1 text-foreground"
-            >
-              <LuBug className="h-4 w-4 mr-1" />
-              <span>{t('feedback.reportIssue')}</span>
-            </Button>
             <button
               onClick={createNewList}
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
@@ -280,24 +263,26 @@ export default function Dashboard() {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-foreground">Delete List</DialogTitle>
+            <DialogTitle className="text-foreground">{t('common.delete')}</DialogTitle>
+            <DialogDescription>
+              {t('list.deleteConfirmation', { listName: deleteDialog.listName })}
+            </DialogDescription>
           </DialogHeader>
           <div className="py-4">
-            <p className="text-foreground">Are you sure you want to delete the list <strong className="text-foreground">{deleteDialog.listName}</strong>?</p>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">This action cannot be undone. All columns and items in this list will be permanently deleted.</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">{t('list.deleteWarning')}</p>
           </div>
           <DialogFooter>
             <Button
               variant="secondary"
               onClick={() => setDeleteDialog({ open: false, listId: '', listName: '' })}
             >
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button 
               variant="destructive"
               onClick={handleDeleteList}
             >
-              Delete
+              {t('common.delete')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -311,6 +296,9 @@ export default function Dashboard() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-foreground">{t('feedback.sendFeedback')}</DialogTitle>
+            <DialogDescription>
+              {t('feedback.messagePlaceholder')}
+            </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleFeedbackSubmit}>
             <div className="grid gap-4 py-4">

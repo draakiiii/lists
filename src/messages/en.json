@@ -188,7 +188,7 @@
       "autoIncrementDuplicates": "Auto-increment Duplicates",
       "autoIncrementDuplicatesDesc": "Automatically increment numbers when duplicating items (e.g. \"Book, volume 1\" → \"Book, volume 2\")",
       "exampleTask": "Title",
-      "exampleDescription": "Test description.",
+      "exampleDescription": "Example description.",
       "exampleTag1": "example",
       "exampleTag2": "preview",
       "previewCategoryName": "Category"
