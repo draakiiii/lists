@@ -6,11 +6,12 @@ import { useAuth } from '@/providers/AuthProvider';
 import { listService } from '@/lib/services/listService';
 import { List } from '@/types/list';
 import Link from 'next/link';
-import { LuTrash, LuPencil, LuPlus } from 'react-icons/lu';
+import { LuTrash, LuPencil, LuPlus, LuInfo, LuRefreshCw } from 'react-icons/lu';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { useTranslations } from 'next-intl';
+import { useOnboardingTour } from '@/components/OnboardingTour';
 
 export default function Dashboard() {
   const [lists, setLists] = useState<List[]>([]);
@@ -24,6 +25,7 @@ export default function Dashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
   const t = useTranslations('app');
+  const { startTour, hasSeenTour, markTourAsSeen } = useOnboardingTour();
 
   useEffect(() => {
     if (!user) {
@@ -108,13 +110,15 @@ export default function Dashboard() {
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
             {t('list.yourLists')}
           </h1>
-          <button
-            onClick={createNewList}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-          >
-            <LuPlus className="mr-2 h-4 w-4" />
-            {t('list.createNew')}
-          </button>
+          <div className="flex space-x-2">
+            <button
+              onClick={createNewList}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              <LuPlus className="mr-2 h-4 w-4" />
+              {t('list.createNew')}
+            </button>
+          </div>
         </div>
 
         {lists.length === 0 ? (

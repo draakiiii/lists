@@ -13,6 +13,7 @@
     "editItem": "Editar Elemento",
     "deleteItem": "Eliminar Elemento",
     "duplicateItem": "Duplicar Elemento",
+    "helpTour": "Guía de Ayuda",
     "placeholder": {
       "todoTitle": "¿Qué necesitas hacer?",
       "todoDescription": "Añade una descripción...",
@@ -160,6 +161,7 @@
       "title": "Perfil de Usuario",
       "displayName": "Nombre a mostrar",
       "email": "Correo electrónico",
+      "emailReadOnly": "El correo electrónico no se puede cambiar",
       "updateSuccess": "¡Perfil actualizado con éxito!",
       "updateError": "Error al actualizar el perfil. Por favor, inténtalo de nuevo.",
       "saving": "Guardando..."
@@ -208,6 +210,7 @@
       "next": "Siguiente",
       "back": "Atrás",
       "skip": "Saltar Tour",
+      "skipTour": "Saltar Tour",
       "finish": "Finalizar Tour",
       "nextWithProgress": "Siguiente (Paso {step} de {steps})"
     }

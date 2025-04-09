@@ -1,9 +1,99 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 import Joyride, { Step, CallBackProps, STATUS, ACTIONS, EVENTS, TooltipRenderProps } from 'react-joyride';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+
+// Crear un contexto para manejar el tour
+interface OnboardingTourContextType {
+  startTour: () => void;
+  hasSeenTour: boolean;
+  markTourAsSeen: () => void;
+}
+
+const OnboardingTourContext = createContext<OnboardingTourContextType | undefined>(undefined);
+
+// Hook personalizado para usar el contexto del tour
+export const useOnboardingTour = () => {
+  const context = useContext(OnboardingTourContext);
+  if (context === undefined) {
+    throw new Error('useOnboardingTour must be used within an OnboardingTourProvider');
+  }
+  return context;
+};
+
+// Proveedor del contexto para el tour
+interface OnboardingTourProviderProps {
+  children: ReactNode;
+}
+
+export const OnboardingTourProvider = ({ children }: OnboardingTourProviderProps) => {
+  const [hasSeenTour, setHasSeenTour] = useState(false);
+  const [ready, setReady] = useState(false);
+  const [initialized, setInitialized] = useState(false);
+
+  // Comprobar si el usuario ya ha visto el tour
+  useEffect(() => {
+    // Asegurar que estamos en el cliente antes de acceder a localStorage
+    if (typeof window !== 'undefined' && !initialized) {
+      try {
+        // Usar una técnica más robusta para leer de localStorage
+        const tourSeen = window.localStorage.getItem('hasSeenTour') === 'true';
+        setHasSeenTour(tourSeen);
+        setReady(true);
+        setInitialized(true);
+      } catch (error) {
+        console.error('Error accessing localStorage:', error);
+        // En caso de error, reiniciar el estado
+        setHasSeenTour(false);
+        setReady(true);
+        setInitialized(true);
+      }
+    }
+  }, [initialized]);
+
+  // Función para iniciar el tour manualmente
+  const startTour = () => {
+    // Emitir un evento que el componente OnboardingTour escuchará
+    if (typeof window !== 'undefined') {
+      // Asegurar que el localStorage está limpio para reiniciar el tour
+      try {
+        window.localStorage.removeItem('hasSeenTour');
+        setHasSeenTour(false);
+        
+        const event = new CustomEvent('start-onboarding-tour');
+        document.dispatchEvent(event);
+      } catch (error) {
+        console.error('Error accessing localStorage:', error);
+      }
+    }
+  };
+
+  // Función para marcar el tour como visto manualmente
+  const markTourAsSeen = () => {
+    if (typeof window !== 'undefined') {
+      try {
+        window.localStorage.setItem('hasSeenTour', 'true');
+        setHasSeenTour(true);
+      } catch (error) {
+        console.error('Error accessing localStorage:', error);
+      }
+    }
+  };
+
+  const contextValue = {
+    startTour,
+    hasSeenTour,
+    markTourAsSeen
+  };
+
+  return (
+    <OnboardingTourContext.Provider value={contextValue}>
+      {children}
+    </OnboardingTourContext.Provider>
+  );
+};
 
 // Componente personalizado para el tooltip
 const CustomTooltip = (props: TooltipRenderProps) => {
@@ -47,35 +137,91 @@ export const OnboardingTour = () => {
   const [stepIndex, setStepIndex] = useState(0);
   const [isMobileView, setIsMobileView] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [hasSeenTour, setHasSeenTour] = useState(false);
+  const [initialized, setInitialized] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
   const t = useTranslations('app.onboarding');
+
+  // Comprobar si el usuario ya ha visto el tour - con cuidado de solo hacerlo en el cliente
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !initialized) {
+      try {
+        // Verificar explícitamente si existe 'true' como string
+        const tourValue = window.localStorage.getItem('hasSeenTour');
+        const tourSeen = tourValue === 'true';
+        setHasSeenTour(tourSeen);
+        setInitialized(true);
+        
+        // Si el valor no es válido, establecerlo como falso
+        if (tourValue !== 'true' && tourValue !== null) {
+          window.localStorage.setItem('hasSeenTour', 'false');
+        }
+      } catch (error) {
+        console.error('Error accessing localStorage:', error);
+        setHasSeenTour(false);
+        setInitialized(true);
+      }
+    }
+  }, [initialized]);
+
+  // Manejar la visualización del tour basado en la ruta y el estado
+  useEffect(() => {
+    // Solo proceder si ya se inicializó el estado
+    if (!initialized) return;
+    
+    // Check if we're on the dashboard page
+    const isDashboard = pathname === '/dashboard' || pathname.endsWith('/dashboard');
+    
+    // Solo mostrar el tour si estamos en el dashboard Y el usuario no lo ha visto antes
+    if (isDashboard && !hasSeenTour) {
+      // Pequeño retraso para asegurar que los elementos están montados
+      const timer = setTimeout(() => setRun(true), 500);
+      return () => clearTimeout(timer);
+    } else {
+      setRun(false);
+    }
+  }, [pathname, hasSeenTour, initialized]);
+
+  // Set up mobile view detection separately to avoid re-running the tour effect
+  useEffect(() => {
+    // Set initial mobile state
+    const handleResize = () => {
+      const isMobile = window.innerWidth < 640;
+      setIsMobileView(isMobile);
+    };
+    
+    // Initialize and add listener
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Función para iniciar el tour manualmente - necesaria para eventos internos
+  const startTour = () => {
+    setStepIndex(0);
+    setRun(true);
+  };
+
+  // Registrar el evento para iniciar el tour desde fuera
+  useEffect(() => {
+    const handleStartTour = () => {
+      startTour();
+    };
+
+    if (typeof window !== 'undefined') {
+      document.addEventListener('start-onboarding-tour', handleStartTour);
+      return () => {
+        document.removeEventListener('start-onboarding-tour', handleStartTour);
+      };
+    }
+  }, []);
 
   // Crear la traducción con el formato correcto
   const getNextWithProgressText = (step: number, totalSteps: number) => {
     const text = t('nextWithProgress');
     return text.replace('{step}', String(step)).replace('{steps}', String(totalSteps));
   };
-
-  useEffect(() => {
-    // Check if this is the first time the user visits the app
-    const hasSeenTour = localStorage.getItem('hasSeenTour');
-    if (!hasSeenTour) {
-      // Pequeño retraso para asegurar que los elementos están montados
-      setTimeout(() => setRun(true), 500);
-    }
-
-    // Set initial mobile state
-    setIsMobileView(window.innerWidth < 640);
-
-    // Add resize listener
-    const handleResize = () => {
-      const isMobile = window.innerWidth < 640;
-      setIsMobileView(isMobile);
-    };
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
 
   // Add CSS for menu transitions and tooltip styles
   useEffect(() => {
@@ -384,6 +530,7 @@ export const OnboardingTour = () => {
       if (type === EVENTS.STEP_AFTER && index === 6) {
         setRun(false);
         localStorage.setItem('hasSeenTour', 'true');
+        setHasSeenTour(true);
         closeMobileMenu();
         return;
       }
@@ -398,10 +545,16 @@ export const OnboardingTour = () => {
       return;
     }
     
-    // Handle tour completion
+    // Handle tour completion - asegurar que se guarda correctamente
     if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status as any)) {
       setRun(false);
-      localStorage.setItem('hasSeenTour', 'true');
+      // Guardar explícitamente como string 'true'
+      try {
+        window.localStorage.setItem('hasSeenTour', 'true');
+        setHasSeenTour(true);
+      } catch (error) {
+        console.error('Error setting localStorage:', error);
+      }
       
       // Clean up
       if (isMobileView && menuOpen) {
@@ -468,4 +621,17 @@ export const OnboardingTour = () => {
       }}
     />
   );
+};
+
+// Exportamos la función para iniciar el tour
+export const startOnboardingTour = () => {
+  // Buscar la instancia del tour en el DOM
+  const tourInstance = document.querySelector('.react-joyride__overlay');
+  if (tourInstance) {
+    // Si existe, intentar iniciar el tour a través de un evento personalizado
+    const event = new CustomEvent('start-onboarding-tour');
+    document.dispatchEvent(event);
+  } else {
+    console.warn('Tour component not found in the DOM');
+  }
 }; 

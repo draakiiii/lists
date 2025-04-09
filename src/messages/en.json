@@ -13,6 +13,7 @@
     "editItem": "Edit Item",
     "deleteItem": "Delete Item",
     "duplicateItem": "Duplicate Item",
+    "helpTour": "Help Tour",
     "placeholder": {
       "todoTitle": "What needs to be done?",
       "todoDescription": "Add a description...",
@@ -160,6 +161,7 @@
       "title": "User Profile",
       "displayName": "Display Name",
       "email": "Email address",
+      "emailReadOnly": "Email cannot be changed",
       "updateSuccess": "Profile updated successfully!",
       "updateError": "Failed to update profile. Please try again.",
       "saving": "Saving..."
@@ -208,6 +210,7 @@
       "next": "Next",
       "back": "Back",
       "skip": "Skip Tour",
+      "skipTour": "Skip Tour",
       "finish": "Finish Tour",
       "nextWithProgress": "Next (Step {step} of {steps})"
     }

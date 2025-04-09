@@ -6,7 +6,7 @@ import { ThemeProvider } from '@/providers/ThemeProvider'
 import { LanguageProvider } from '@/providers/LanguageProvider'
 import { Navbar } from '@/components/Navbar'
 import { Toaster } from '@/components/ui/toaster'
-import { OnboardingTour } from '@/components/OnboardingTour'
+import { OnboardingTour, OnboardingTourProvider } from '@/components/OnboardingTour'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -26,12 +26,14 @@ export default function RootLayout({
         <AuthProvider>
           <ThemeProvider>
             <LanguageProvider>
-              <Navbar />
-              <OnboardingTour />
-              <main className="min-h-screen bg-gray-50 dark:bg-gray-900">
-                {children}
-              </main>
-              <Toaster />
+              <OnboardingTourProvider>
+                <Navbar />
+                <OnboardingTour />
+                <main className="min-h-screen bg-gray-50 dark:bg-gray-900">
+                  {children}
+                </main>
+                <Toaster />
+              </OnboardingTourProvider>
             </LanguageProvider>
           </ThemeProvider>
         </AuthProvider>

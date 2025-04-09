@@ -38,18 +38,15 @@ export default function ProfilePage() {
 
     try {
       await updateProfile(user, { displayName });
-      if (email !== user.email && email.trim() !== '') {
-        await updateEmail(user, email);
-      }
-
+      
       const userDocRef = doc(db, 'users', user.uid);
       const userDoc = await getDoc(userDocRef);
-      const userData = { displayName, email, updatedAt: new Date() };
+      const userData = { displayName, updatedAt: new Date() };
 
       if (userDoc.exists()) {
         await updateDoc(userDocRef, userData);
       } else {
-        await setDoc(userDocRef, { ...userData, createdAt: new Date() });
+        await setDoc(userDocRef, { ...userData, email: user.email, createdAt: new Date() });
       }
 
       setMessage({ type: 'success', text: t('updateSuccess') });
@@ -88,7 +85,16 @@ export default function ProfilePage() {
             </div>
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('email')}</label>
-              <input type="email" name="email" id="email" value={email} onChange={(e) => setEmail(e.target.value)} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+              <input 
+                type="email" 
+                name="email" 
+                id="email" 
+                value={email} 
+                disabled={true}
+                readOnly={true}
+                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 bg-gray-100 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed" 
+              />
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{t('emailReadOnly')}</p>
             </div>
             <div className="flex justify-end">
               <button type="submit" disabled={saving} className={`inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${saving ? 'opacity-75 cursor-not-allowed' : ''}`}>
