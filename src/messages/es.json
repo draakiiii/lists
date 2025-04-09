@@ -195,6 +195,21 @@
       "createTitle": "Crear Nueva Lista",
       "editTitle": "Editar Lista",
       "errorCreating": "Error al crear la lista. Por favor, inténtalo de nuevo."
+    },
+    "onboarding": {
+      "welcome": "¡Bienvenido a tu gestor de listas personal! Hagamos un recorrido rápido por la interfaz.",
+      "openMenu": "Este botón muestra las opciones principales de navegación.",
+      "createList": "Haz clic aquí para crear tu primera lista. ¡Puedes organizar lo que quieras!",
+      "settings": "Accede a tus ajustes aquí para personalizar tu experiencia.",
+      "categories": "Gestiona tus categorías para organizar mejor tus listas.",
+      "profile": "Visualiza y edita tu información de perfil aquí.",
+      "logout": "Haz clic aquí cuando quieras cerrar tu sesión.",
+      "theme": "Cambia entre modo claro y oscuro según tu preferencia.",
+      "next": "Siguiente",
+      "back": "Atrás",
+      "skip": "Saltar Tour",
+      "finish": "Finalizar Tour",
+      "nextWithProgress": "Siguiente (Paso {step} de {steps})"
     }
   }
 } 

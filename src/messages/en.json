@@ -195,6 +195,21 @@
       "createTitle": "Create New List",
       "editTitle": "Edit List",
       "errorCreating": "Failed to create list. Please try again."
+    },
+    "onboarding": {
+      "welcome": "Welcome to your personal list manager! Let's take a quick tour of the interface.",
+      "openMenu": "This menu button shows the main navigation options.",
+      "createList": "Click here to create your first list. You can organize anything you want!",
+      "settings": "Access your settings here to customize your experience.",
+      "categories": "Manage your categories to better organize your lists.",
+      "profile": "View and edit your profile information here.",
+      "logout": "Click here when you want to sign out of your account.",
+      "theme": "Toggle between light and dark mode to suit your preference.",
+      "next": "Next",
+      "back": "Back",
+      "skip": "Skip Tour",
+      "finish": "Finish Tour",
+      "nextWithProgress": "Next (Step {step} of {steps})"
     }
   }
 } 

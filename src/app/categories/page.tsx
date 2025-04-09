@@ -184,10 +184,13 @@ export default function CategoriesPage() {
           description: t('categoryUpdatedDesc'),
         });
       } else {
-        const newCategoryData: Omit<Category, 'id'> = { ...updates, userId: user!.uid };
+        const newCategoryData: Omit<Category, 'id'> = {
+          name: formData.name,
+          color: formData.color,
+          userId: user!.uid,
+          parentId: formData.isSubcategory && formData.parentId ? formData.parentId : null
+        };
         if (formData.icon) newCategoryData.icon = formData.icon;
-        // Ensure parentId is correctly set or null
-        newCategoryData.parentId = formData.isSubcategory && formData.parentId ? formData.parentId : null;
         const newCategoryId = await categoryService.createCategory(newCategoryData);
         const newCategory: Category = { id: newCategoryId, ...newCategoryData };
         setCategories(prev => [...prev, newCategory].sort((a, b) => a.name.localeCompare(b.name)));
@@ -578,7 +581,7 @@ export default function CategoriesPage() {
           </DialogHeader>
           <div className="py-4">
             <p className="text-foreground">
-              {t('deleteConfirmation', { categoryName: currentCategory?.name })}
+              {t('deleteConfirmation', { categoryName: currentCategory?.name || tCommon('category') })}
             </p>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
               {t('deleteWarning')}
