@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Column } from '@/types/list';
 import { useClickOutside } from '@/hooks/useClickOutside';
+import { useTranslations } from 'next-intl';
 
 // Componentes simplificados para evitar dependencias problemáticas
 const SimpleDialog = ({ 
@@ -90,6 +91,8 @@ export const ColumnDialog: React.FC<ColumnDialogProps> = ({
 }) => {
   const [header, setHeader] = useState(initialData?.header || '');
   const [headerError, setHeaderError] = useState('');
+  const t = useTranslations('app');
+  const tCommon = useTranslations('app.common');
 
   // Actualizar el header cuando cambia initialData
   useEffect(() => {
@@ -104,7 +107,7 @@ export const ColumnDialog: React.FC<ColumnDialogProps> = ({
     e.preventDefault();
     
     if (!header.trim()) {
-      setHeaderError('Header is required');
+      setHeaderError(tCommon('requiredError', { field: tCommon('header') }));
       return;
     }
     
@@ -118,12 +121,12 @@ export const ColumnDialog: React.FC<ColumnDialogProps> = ({
     <SimpleDialog 
       open={open} 
       onOpenChange={onOpenChange}
-      title={mode === 'add' ? 'Add Column' : 'Edit Column'}
+      title={mode === 'add' ? t('addColumn') : t('editColumn')}
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
           <label className="text-sm font-medium block text-foreground">
-            Header
+            {tCommon('header')}
           </label>
           <input 
             value={header}
@@ -131,7 +134,7 @@ export const ColumnDialog: React.FC<ColumnDialogProps> = ({
               setHeader(e.target.value);
               if (e.target.value.trim()) setHeaderError('');
             }}
-            placeholder="Enter column header"
+            placeholder={t('placeholder.columnHeader')}
             className="flex h-10 w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm placeholder:text-muted-foreground"
           />
           {headerError && (
@@ -144,12 +147,12 @@ export const ColumnDialog: React.FC<ColumnDialogProps> = ({
             variant="outline" 
             onClick={() => onOpenChange(false)}
           >
-            Cancel
+            {t('cancel')}
           </SimpleButton>
           <SimpleButton 
             type="submit"
           >
-            {mode === 'add' ? 'Add Column' : 'Save Changes'}
+            {mode === 'add' ? t('addColumn') : tCommon('saveChanges')}
           </SimpleButton>
         </div>
       </form>

@@ -10,6 +10,7 @@ import { LuTrash, LuPencil, LuPlus } from 'react-icons/lu';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
+import { useTranslations } from 'next-intl';
 
 export default function Dashboard() {
   const [lists, setLists] = useState<List[]>([]);
@@ -22,6 +23,7 @@ export default function Dashboard() {
   const router = useRouter();
   const { user } = useAuth();
   const { toast } = useToast();
+  const t = useTranslations('app');
 
   useEffect(() => {
     if (!user) {
@@ -104,28 +106,28 @@ export default function Dashboard() {
       <div className="px-4 py-6 sm:px-0">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Your Lists
+            {t('list.yourLists')}
           </h1>
           <button
             onClick={createNewList}
             className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
           >
             <LuPlus className="mr-2 h-4 w-4" />
-            Create New List
+            {t('list.createNew')}
           </button>
         </div>
 
         {lists.length === 0 ? (
           <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg shadow">
             <p className="text-gray-500 dark:text-gray-400 mb-4">
-              You haven&apos;t created any lists yet. Create your first list to get started!
+              {t('list.noLists')}
             </p>
             <button
               onClick={createNewList}
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
               <LuPlus className="mr-2 h-4 w-4" />
-              Create First List
+              {t('list.createFirst')}
             </button>
           </div>
         ) : (

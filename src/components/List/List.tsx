@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Statistics } from './Statistics';
 import { Button } from '@/components/ui/button';
 import { Badge } from '../../components/ui/badge';
-import { LuArrowLeft, LuPlus, LuSettings2, LuCalendar, LuCheck, LuCopy, LuTrash2 } from 'react-icons/lu';
+import { LuArrowLeft, LuPlus, LuSettings2, LuCalendar, LuCheck, LuCopy, LuTrash2, LuPencil, LuTrash } from 'react-icons/lu';
 import { useAuth } from '@/providers/AuthProvider';
 import { settingsService } from '@/lib/services/settingsService';
 import { UserSettings } from '@/types/settings';
@@ -15,6 +15,7 @@ import { Timestamp } from 'firebase/firestore';
 import { Trash2 } from "lucide-react";
 import { createPortal } from 'react-dom';
 import { SearchFilter } from './SearchFilter';
+import { useTranslations } from 'next-intl';
 
 // Componentes simplificados para evitar dependencias problemáticas
 const SimpleButton = ({ onClick, className, children, variant = "default" }: { 
@@ -203,6 +204,9 @@ export const List: React.FC<ListProps> = ({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const autoScrollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const dragStartRef = useRef<{ x: number; y: number } | null>(null);
+  const t = useTranslations('app');
+  const tCommon = useTranslations('app.common');
+  const tList = useTranslations('app.list');
   
   // Estado para elementos filtrados por búsqueda
   const [filteredItems, setFilteredItems] = useState<ListItem[]>(list.items);
@@ -501,7 +505,7 @@ export const List: React.FC<ListProps> = ({
             onClick={() => router.push('/dashboard')}
           >
             <LuArrowLeft className="h-4 w-4" />
-            <span className="ml-2">Back to Dashboard</span>
+            <span className="ml-2">{tList('backToDashboard')}</span>
           </SimpleButton>
           <h1 className="text-2xl font-bold text-foreground">{list.name}</h1>
         </div>
@@ -510,7 +514,7 @@ export const List: React.FC<ListProps> = ({
             variant="ghost"
             onClick={() => setShowStats(!showStats)}
           >
-            {showStats ? 'Hide Statistics' : 'Show Statistics'}
+            {showStats ? tList('hideStats') : tList('showStats')}
           </SimpleButton>
         </div>
       </div>
@@ -593,13 +597,13 @@ export const List: React.FC<ListProps> = ({
                                     }
                                   >
                                     <SimpleDropdownItem onClick={() => onEditColumn(column)} className="text-foreground bg-background hover:bg-secondary">
-                                      Edit Column
+                                      {t('editColumn')}
                                     </SimpleDropdownItem>
                                     <SimpleDropdownItem 
                                       className="text-red-500 dark:text-red-400 bg-background hover:bg-secondary"
                                       onClick={() => onDeleteColumn(column.id)}
                                     >
-                                      Delete Column
+                                      {t('deleteColumn')}
                                     </SimpleDropdownItem>
                                   </SimpleDropdown>
                                 </div>
@@ -652,34 +656,40 @@ export const List: React.FC<ListProps> = ({
                                                 >
                                                   <SimpleDropdownItem onClick={() => onEditItem(item)} className="text-foreground bg-background hover:bg-secondary">
                                                     <LuSettings2 className="h-4 w-4 mr-2 inline-block" />
-                                                    Edit Item
+                                                    {t('editItem')}
                                                   </SimpleDropdownItem>
                                                   <SimpleDropdownItem onClick={() => onDuplicateItem(item)} className="text-foreground bg-background hover:bg-secondary">
                                                     <LuCopy className="h-4 w-4 mr-2 inline-block" />
-                                                    Duplicate Item
+                                                    {t('duplicateItem')}
                                                   </SimpleDropdownItem>
                                                   <SimpleDropdownItem 
                                                     onClick={() => onDeleteItem(item.id)} 
                                                     className="text-red-500 dark:text-red-400 bg-background hover:bg-secondary"
                                                   >
                                                     <LuTrash2 className="h-4 w-4 mr-2 inline-block" />
-                                                    Delete Item
+                                                    {t('deleteItem')}
                                                   </SimpleDropdownItem>
                                                 </SimpleDropdown>
                                               </div>
                                               {item.categoryId && (settings?.showCategoryLabels || settings?.showCategoryIcons) && (
                                                 <Badge 
                                                   variant={settings?.disableCategoryColors ? "secondary" : "outline"}
-                                                  className="text-xs"
+                                                  className="text-xs flex items-center gap-1 whitespace-nowrap"
                                                   style={!settings?.disableCategoryColors && categories.find(c => c.id === item.categoryId)?.color ? {
                                                     backgroundColor: categories.find(c => c.id === item.categoryId)?.color,
                                                     color: '#fff',
                                                     borderColor: 'transparent'
                                                   } : undefined}
                                                 >
-                                                  {settings?.showCategoryIcons && categories.find(c => c.id === item.categoryId)?.icon}
+                                                  {settings?.showCategoryIcons && (
+                                                    <span className="flex-shrink-0">
+                                                      {categories.find(c => c.id === item.categoryId)?.icon}
+                                                    </span>
+                                                  )}
                                                   {settings?.showCategoryLabels && (
-                                                    <>{' '}{getCategoryName(item.categoryId)}</>
+                                                    <span className="truncate">
+                                                      {getCategoryName(item.categoryId)}
+                                                    </span>
                                                   )}
                                                 </Badge>
                                               )}
@@ -696,20 +706,20 @@ export const List: React.FC<ListProps> = ({
                                                 {item.startDate && item.endDate ? (
                                                   <span className="flex items-center gap-1">
                                                     <LuCalendar className="h-3 w-3" />
-                                                    {safeFormatDate(item.startDate)?.toLocaleDateString() || 'N/A'} - {safeFormatDate(item.endDate)?.toLocaleDateString() || 'N/A'}
+                                                    {safeFormatDate(item.startDate)?.toLocaleDateString() || tCommon('na')} - {safeFormatDate(item.endDate)?.toLocaleDateString() || tCommon('na')}
                                                   </span>
                                                 ) : (
                                                   <>
                                                     {item.startDate && (
                                                       <span className="flex items-center gap-1">
                                                         <LuCalendar className="h-3 w-3" />
-                                                        {safeFormatDate(item.startDate)?.toLocaleDateString() || 'N/A'}
+                                                        {safeFormatDate(item.startDate)?.toLocaleDateString() || tCommon('na')}
                                                       </span>
                                                     )}
                                                     {item.endDate && (
                                                       <span className="flex items-center gap-1">
                                                         <LuCalendar className="h-3 w-3" />
-                                                        {safeFormatDate(item.endDate)?.toLocaleDateString() || 'N/A'}
+                                                        {safeFormatDate(item.endDate)?.toLocaleDateString() || tCommon('na')}
                                                       </span>
                                                     )}
                                                   </>
@@ -736,7 +746,7 @@ export const List: React.FC<ListProps> = ({
                                       onClick={() => onAddItem(column.id)}
                                     >
                                       <LuPlus className="mr-2 h-4 w-4" />
-                                      Add Item
+                                      {t('addItem')}
                                     </SimpleButton>
                                   </div>
                                 )}
@@ -753,7 +763,7 @@ export const List: React.FC<ListProps> = ({
                             className="h-10 whitespace-nowrap inline-flex items-center"
                           >
                             <LuPlus className="mr-2 h-4 w-4" />
-                            Add Column
+                            {t('addColumn')}
                           </SimpleButton>
                         </div>
                       )}

@@ -12,6 +12,7 @@ import { LuTrash, LuPencil, LuPlus, LuGripVertical } from 'react-icons/lu';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import type { DropResult } from '@hello-pangea/dnd';
 import { deleteField } from 'firebase/firestore';
+import { useTranslations } from 'next-intl';
 
 // Lista de emojis comunes para categorías
 const COMMON_ICONS = ['📁', '📚', '🎬', '🎮', '🛍️', '✅', '🎵', '🍽️', '💼', '🏠', '🎨', '✈️', '💪', '📝'];
@@ -50,6 +51,8 @@ export default function CategoriesPage() {
   const router = useRouter();
   const { user } = useAuth();
   const { toast } = useToast();
+  const t = useTranslations('app.categories');
+  const tCommon = useTranslations('app.common');
 
   useEffect(() => {
     if (!user) {
@@ -65,8 +68,8 @@ export default function CategoriesPage() {
       } catch (error) {
         console.error('Error fetching categories:', error);
         toast({
-          title: 'Error',
-          description: 'Failed to load categories',
+          title: tCommon('error'),
+          description: t('errorLoading'),
           variant: 'destructive',
         });
         setLoading(false);
@@ -74,7 +77,7 @@ export default function CategoriesPage() {
     };
 
     fetchCategories();
-  }, [user, router, toast]);
+  }, [user, router, toast, t, tCommon]);
 
   const handleAddCategory = () => {
     setCurrentCategory(null);
@@ -113,16 +116,16 @@ export default function CategoriesPage() {
       setCategories(prev => prev.filter(c => c.id !== currentCategory.id));
       
       toast({
-        title: 'Category deleted',
-        description: 'The category has been deleted successfully',
+        title: t('categoryDeleted'),
+        description: t('categoryDeletedDesc'),
       });
       
       setDeleteDialogOpen(false);
     } catch (error) {
       console.error('Error deleting category:', error);
       toast({
-        title: 'Error',
-        description: 'Failed to delete the category',
+        title: tCommon('error'),
+        description: t('errorDeleting'),
         variant: 'destructive',
       });
     }
@@ -133,36 +136,38 @@ export default function CategoriesPage() {
     
     if (!formData.name.trim()) {
       toast({
-        title: 'Error',
-        description: 'Category name is required',
+        title: tCommon('error'),
+        description: t('nameRequired'),
         variant: 'destructive',
       });
       return;
     }
 
     try {
+      const updates: Partial<Category> & { icon?: any, parentId?: string | null | undefined } = {
+        name: formData.name,
+        color: formData.color,
+      };
+
+      if (formData.isSubcategory && formData.parentId) {
+        updates.parentId = formData.parentId;
+      } else if (!formData.isSubcategory) {
+        updates.parentId = null; // Explicitly set to null for root categories
+      }
+
       if (currentCategory) {
-        // Update existing category
-        const updates: Partial<Category> & { icon?: any } = {
-          name: formData.name,
-          color: formData.color,
-        };
-
-        // Only include parentId if it's a subcategory
-        if (formData.isSubcategory && formData.parentId) {
-          updates.parentId = formData.parentId;
-        } else if (!formData.isSubcategory) {
-          // If it's not a subcategory, use null for parentId
-          updates.parentId = null;
-        }
-
-        // Handle icon updates
         if (formData.icon !== currentCategory.icon) {
-          updates.icon = formData.icon || deleteField(); // Use deleteField() when icon is empty
+          updates.icon = formData.icon || deleteField();
+        }
+        // Only update parentId if it has changed
+        if (updates.parentId !== undefined && updates.parentId !== currentCategory.parentId) {
+          // parentId is included in updates
+        } else if (updates.parentId === undefined && currentCategory.parentId !== null) {
+          // If parentId is not in updates, but was previously set, we need to unset it
+          updates.parentId = null; 
         }
 
         await categoryService.updateCategory(currentCategory.id, updates);
-
         setCategories(prev => 
           prev.map(c => c.id === currentCategory.id 
             ? { 
@@ -175,39 +180,20 @@ export default function CategoriesPage() {
         );
 
         toast({
-          title: 'Success',
-          description: 'Category updated successfully',
+          title: t('categoryUpdated'),
+          description: t('categoryUpdatedDesc'),
         });
       } else {
-        // Create new category
-        const newCategoryData: Omit<Category, 'id'> = {
-          name: formData.name,
-          color: formData.color,
-          userId: user!.uid,
-        };
-
-        // Only add parentId if it's a subcategory
-        if (formData.isSubcategory && formData.parentId) {
-          newCategoryData.parentId = formData.parentId;
-        }
-
-        // Only add icon if one was selected
-        if (formData.icon) {
-          newCategoryData.icon = formData.icon;
-        }
-
+        const newCategoryData: Omit<Category, 'id'> = { ...updates, userId: user!.uid };
+        if (formData.icon) newCategoryData.icon = formData.icon;
+        // Ensure parentId is correctly set or null
+        newCategoryData.parentId = formData.isSubcategory && formData.parentId ? formData.parentId : null;
         const newCategoryId = await categoryService.createCategory(newCategoryData);
-
-        const newCategory: Category = {
-          id: newCategoryId,
-          ...newCategoryData
-        };
-
+        const newCategory: Category = { id: newCategoryId, ...newCategoryData };
         setCategories(prev => [...prev, newCategory].sort((a, b) => a.name.localeCompare(b.name)));
-
         toast({
-          title: 'Success',
-          description: 'Category created successfully',
+          title: t('categoryCreated'),
+          description: t('categoryCreatedDesc'),
         });
       }
 
@@ -215,8 +201,8 @@ export default function CategoriesPage() {
     } catch (error) {
       console.error('Error saving category:', error);
       toast({
-        title: 'Error',
-        description: 'Failed to save the category',
+        title: tCommon('error'),
+        description: t('errorSaving'),
         variant: 'destructive',
       });
     }
@@ -271,69 +257,31 @@ export default function CategoriesPage() {
       return false;
     };
 
-    // If dropped on a category (becomes a child)
-    if (destination.droppableId !== 'root') {
-      if (isDroppedOnChild(draggableId, destination.droppableId)) {
-        toast({
-          title: 'Invalid Operation',
-          description: 'Cannot move a category into its own subcategory',
-          variant: 'destructive',
-        });
-        return;
-      }
+    const targetParentId = destination.droppableId === 'root' ? null : destination.droppableId;
 
-      try {
-        // Update the category's parent
-        await categoryService.updateCategory(draggableId, {
-          parentId: destination.droppableId
-        });
+    if (targetParentId && isDroppedOnChild(draggableId, targetParentId)) {
+      toast({
+        title: t('invalidMove'),
+        description: t('invalidMoveDesc'),
+        variant: 'destructive',
+      });
+      return;
+    }
 
-        // Update local state
-        setCategories(prev => prev.map(c => 
-          c.id === draggableId 
-            ? { ...c, parentId: destination.droppableId }
-            : c
-        ));
-
-        toast({
-          title: 'Success',
-          description: 'Category moved successfully',
-        });
-      } catch (error) {
-        console.error('Error moving category:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to move the category',
-          variant: 'destructive',
-        });
-      }
-    } else {
-      // Dropped in root level
-      try {
-        // Remove parent
-        await categoryService.updateCategory(draggableId, {
-          parentId: undefined
-        });
-
-        // Update local state
-        setCategories(prev => prev.map(c => 
-          c.id === draggableId 
-            ? { ...c, parentId: undefined }
-            : c
-        ));
-
-        toast({
-          title: 'Success',
-          description: 'Category moved successfully',
-        });
-      } catch (error) {
-        console.error('Error moving category:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to move the category',
-          variant: 'destructive',
-        });
-      }
+    try {
+      await categoryService.updateCategory(draggableId, { parentId: targetParentId });
+      setCategories(prev => prev.map(c => c.id === draggableId ? { ...c, parentId: targetParentId || undefined } : c));
+      toast({
+        title: t('categoryUpdated'),
+        description: t('categoryUpdatedDesc'),
+      });
+    } catch (error) {
+      console.error('Error moving category:', error);
+      toast({
+        title: tCommon('error'),
+        description: t('errorSaving'),
+        variant: 'destructive',
+      });
     }
   };
 
@@ -387,14 +335,14 @@ export default function CategoriesPage() {
                   <button
                     onClick={() => onEdit(category)}
                     className="p-1 bg-gray-200 dark:bg-gray-700 rounded-full text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 focus:outline-none"
-                    aria-label={`Edit ${category.name}`}
+                    aria-label={tCommon('edit') + ' ' + category.name}
                   >
                     <LuPencil className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => onDelete(category)}
                     className="p-1 bg-gray-200 dark:bg-gray-700 rounded-full text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 focus:outline-none"
-                    aria-label={`Delete ${category.name}`}
+                    aria-label={tCommon('delete') + ' ' + category.name}
                   >
                     <LuTrash className="h-4 w-4" />
                   </button>
@@ -434,7 +382,7 @@ export default function CategoriesPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-foreground">Loading...</p>
+        <p className="text-foreground">{tCommon('loading')}</p>
       </div>
     );
   }
@@ -444,16 +392,16 @@ export default function CategoriesPage() {
       <div className="md:flex md:items-center md:justify-between mb-8">
         <div className="flex-1 min-w-0">
           <h1 className="text-2xl font-bold leading-7 text-gray-900 dark:text-white sm:text-3xl">
-            Manage Categories
+            {t('manageTitle')}
           </h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Create and manage categories for organizing your list items. Drag categories to create subcategories.
+            {t('manageDescription')}
           </p>
         </div>
         <div className="mt-4 flex md:mt-0 md:ml-4">
           <Button onClick={handleAddCategory}>
             <LuPlus className="mr-2 h-4 w-4" />
-            Add Category
+            {t('addCategory')}
           </Button>
         </div>
       </div>
@@ -462,11 +410,11 @@ export default function CategoriesPage() {
         {categories.length === 0 ? (
           <div className="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-lg p-6 text-center">
             <p className="text-gray-500 dark:text-gray-400 mb-4">
-              You haven&apos;t created any categories yet. Categories help you organize items in your lists.
+              {t('noCategories')}
             </p>
             <Button onClick={handleAddCategory}>
               <LuPlus className="mr-2 h-4 w-4" />
-              Create First Category
+              {t('createFirst')}
             </Button>
           </div>
         ) : (
@@ -503,13 +451,13 @@ export default function CategoriesPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="text-foreground">
-              {currentCategory ? 'Edit Category' : 'Add Category'}
+              {currentCategory ? t('editCategory') : t('addCategory')}
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4 py-4">
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Name
+                {tCommon('name')}
               </label>
               <input
                 type="text"
@@ -517,7 +465,7 @@ export default function CategoriesPage() {
                 value={formData.name}
                 onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                placeholder="Category name"
+                placeholder={t('categoryNamePlaceholder')}
                 required
               />
             </div>
@@ -537,14 +485,14 @@ export default function CategoriesPage() {
                 className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
               />
               <label htmlFor="isSubcategory" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                This is a subcategory
+                {tCommon('isSubcategory')}
               </label>
             </div>
 
             {formData.isSubcategory && (
               <div>
                 <label htmlFor="parentId" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Parent Category
+                  {tCommon('parentCategory')}
                 </label>
                 <select
                   id="parentId"
@@ -553,7 +501,7 @@ export default function CategoriesPage() {
                   className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                   required={formData.isSubcategory}
                 >
-                  <option value="">Select a parent category</option>
+                  <option value="">{tCommon('selectParentCategory')}</option>
                   {categories
                     .filter(c => !c.parentId && c.id !== currentCategory?.id) // Only show top-level categories
                     .map(category => (
@@ -568,7 +516,7 @@ export default function CategoriesPage() {
 
             <div>
               <label htmlFor="color" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Color
+                {tCommon('color')}
               </label>
               <div className="mt-1 flex items-center">
                 <input
@@ -583,14 +531,14 @@ export default function CategoriesPage() {
                   value={formData.color}
                   onChange={(e) => setFormData(prev => ({ ...prev, color: e.target.value }))}
                   className="ml-2 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                  placeholder="#HEX color"
+                  placeholder={t('hexColorPlaceholder')}
                 />
               </div>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Icon (optional)
+                {tCommon('icon')}
               </label>
               <div className="grid grid-cols-7 gap-2">
                 {COMMON_ICONS.map((icon) => (
@@ -610,10 +558,10 @@ export default function CategoriesPage() {
 
             <DialogFooter>
               <Button type="button" variant="secondary" onClick={() => setDialogOpen(false)}>
-                Cancel
+                {tCommon('cancel')}
               </Button>
               <Button type="submit">
-                {currentCategory ? 'Save Changes' : 'Create Category'}
+                {currentCategory ? tCommon('saveChanges') : tCommon('create') + ' ' + tCommon('category')}
               </Button>
             </DialogFooter>
           </form>
@@ -624,20 +572,24 @@ export default function CategoriesPage() {
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-foreground">Delete Category</DialogTitle>
+            <DialogTitle className="text-foreground">
+              {t('deleteDialogTitle')}
+            </DialogTitle>
           </DialogHeader>
           <div className="py-4">
-            <p className="text-foreground">Are you sure you want to delete the category <strong className="text-foreground">{currentCategory?.name}</strong>?</p>
+            <p className="text-foreground">
+              {t('deleteConfirmation', { categoryName: currentCategory?.name })}
+            </p>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-              This action cannot be undone. Items using this category will no longer be categorized.
+              {t('deleteWarning')}
             </p>
           </div>
           <DialogFooter>
             <Button type="button" variant="secondary" onClick={() => setDeleteDialogOpen(false)}>
-              Cancel
+              {tCommon('cancel')}
             </Button>
             <Button variant="destructive" onClick={confirmDeleteCategory}>
-              Delete
+              {tCommon('delete')}
             </Button>
           </DialogFooter>
         </DialogContent>

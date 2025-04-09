@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/providers/AuthProvider';
 import { useTheme } from '@/providers/ThemeProvider';
+import { useTranslations } from 'next-intl';
 import { 
   LuMenu, 
   LuX, 
@@ -22,6 +23,7 @@ export function Navbar() {
   const { theme, setTheme } = useTheme();
   const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const tCommon = useTranslations('app.common');
 
   const handleLogout = async () => {
     try {
@@ -54,6 +56,7 @@ export function Navbar() {
                 <button
                   onClick={toggleTheme}
                   className="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white focus:outline-none"
+                  aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
                 >
                   {theme === 'dark' ? <LuSun className="h-5 w-5" /> : <LuMoon className="h-5 w-5" />}
                 </button>
@@ -61,6 +64,7 @@ export function Navbar() {
                 <Link 
                   href="/dashboard"
                   className="p-2 ml-3 rounded-full text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white focus:outline-none"
+                  aria-label={tCommon('dashboard')}
                 >
                   <LuLayoutDashboard className="h-5 w-5" />
                 </Link>
@@ -68,6 +72,7 @@ export function Navbar() {
                 <Link 
                   href="/categories"
                   className="p-2 ml-3 rounded-full text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white focus:outline-none"
+                  aria-label={tCommon('categories')}
                 >
                   <LuTags className="h-5 w-5" />
                 </Link>
@@ -75,6 +80,7 @@ export function Navbar() {
                 <Link 
                   href="/settings"
                   className="p-2 ml-3 rounded-full text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white focus:outline-none"
+                  aria-label={tCommon('settings')}
                 >
                   <LuSettings className="h-5 w-5" />
                 </Link>
@@ -82,6 +88,7 @@ export function Navbar() {
                 <Link 
                   href="/profile"
                   className="p-2 ml-3 rounded-full text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white focus:outline-none"
+                  aria-label={tCommon('profile')}
                 >
                   <LuUser className="h-5 w-5" />
                 </Link>
@@ -89,6 +96,7 @@ export function Navbar() {
                 <button
                   onClick={handleLogout}
                   className="p-2 ml-3 rounded-full text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white focus:outline-none"
+                  aria-label={tCommon('logout')}
                 >
                   <LuLogOut className="h-5 w-5" />
                 </button>
@@ -99,9 +107,15 @@ export function Navbar() {
           <div className="flex items-center sm:hidden">
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="inline-flex items-center justify-center p-2 rounded-md text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white focus:outline-none"
+              className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500"
+              aria-expanded={isMenuOpen}
+              aria-label={isMenuOpen ? 'Close menu' : 'Open menu'}
             >
-              {isMenuOpen ? <LuX className="h-6 w-6" /> : <LuMenu className="h-6 w-6" />}
+              {isMenuOpen ? (
+                <LuX className="block h-6 w-6" />
+              ) : (
+                <LuMenu className="block h-6 w-6" />
+              )}
             </button>
           </div>
         </div>
@@ -116,28 +130,28 @@ export function Navbar() {
               className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
               onClick={() => setIsMenuOpen(false)}
             >
-              Dashboard
+              {tCommon('dashboard')}
             </Link>
             <Link
               href="/categories"
               className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
               onClick={() => setIsMenuOpen(false)}
             >
-              Categories
+              {tCommon('categories')}
             </Link>
             <Link
               href="/settings"
               className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
               onClick={() => setIsMenuOpen(false)}
             >
-              Settings
+              {tCommon('settings')}
             </Link>
             <Link
               href="/profile"
               className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
               onClick={() => setIsMenuOpen(false)}
             >
-              Profile
+              {tCommon('profile')}
             </Link>
             <button
               onClick={() => {
@@ -146,16 +160,7 @@ export function Navbar() {
               }}
               className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
             >
-              Logout
-            </button>
-            <button
-              onClick={() => {
-                toggleTheme();
-                setIsMenuOpen(false);
-              }}
-              className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-            >
-              {theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+              {tCommon('logout')}
             </button>
           </div>
         </div>

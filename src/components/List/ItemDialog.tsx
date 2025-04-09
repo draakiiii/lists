@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ListItem, Category } from '@/types/list';
 import { useClickOutside } from '@/hooks/useClickOutside';
+import { useTranslations } from 'next-intl';
 
 // Función auxiliar para convertir fechas de forma segura
 const safeFormatDate = (dateValue: any): string => {
@@ -132,6 +133,8 @@ export const ItemDialog: React.FC<ItemDialogProps> = ({
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [titleError, setTitleError] = useState('');
+  const t = useTranslations('app');
+  const tCommon = useTranslations('app.common');
 
   // Organize categories into main categories and subcategories
   const mainCategories = categories.filter(c => !c.parentId);
@@ -156,16 +159,14 @@ export const ItemDialog: React.FC<ItemDialogProps> = ({
             setMainCategoryId(category.id);
             // Check if there's a tag that matches a subcategory name
             if (initialData.tags && initialData.tags.length > 0) {
-              const subcategories = categories.filter(c => c.parentId === category.id);
-              for (const tag of initialData.tags) {
-                const matchingSubcategory = subcategories.find(
-                  sub => sub.name.toLowerCase() === tag.toLowerCase()
-                );
-                if (matchingSubcategory) {
-                  setSubcategoryId(matchingSubcategory.id);
-                  break;
-                }
-              }
+              const subcategoriesForParent = categories.filter(c => c.parentId === category.id);
+              const matchingSubcategoryTag = initialData.tags.find(tag => 
+                subcategoriesForParent.some(sub => sub.name.toLowerCase() === tag.toLowerCase())
+              );
+              const matchingSubcategory = matchingSubcategoryTag 
+                ? subcategoriesForParent.find(sub => sub.name.toLowerCase() === matchingSubcategoryTag.toLowerCase())
+                : undefined;
+              setSubcategoryId(matchingSubcategory?.id || '');
             } else {
               setSubcategoryId('');
             }
@@ -197,7 +198,7 @@ export const ItemDialog: React.FC<ItemDialogProps> = ({
     e.preventDefault();
     
     if (!title.trim()) {
-      setTitleError('Title is required');
+      setTitleError(tCommon('requiredError', { field: tCommon('title') }));
       return;
     }
     
@@ -235,12 +236,12 @@ export const ItemDialog: React.FC<ItemDialogProps> = ({
     <SimpleDialog 
       open={open} 
       onOpenChange={onOpenChange}
-      title={mode === 'add' ? 'Add Item' : 'Edit Item'}
+      title={mode === 'add' ? t('addItem') : t('editItem')}
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
           <label className="text-sm font-medium block text-foreground">
-            Title
+            {tCommon('title')}
           </label>
           <input 
             value={title}
@@ -248,7 +249,7 @@ export const ItemDialog: React.FC<ItemDialogProps> = ({
               setTitle(e.target.value);
               if (e.target.value.trim()) setTitleError('');
             }}
-            placeholder="Enter item title"
+            placeholder={t('placeholder.itemTitle')}
             className="flex h-10 w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm placeholder:text-muted-foreground"
           />
           {titleError && (
@@ -258,12 +259,12 @@ export const ItemDialog: React.FC<ItemDialogProps> = ({
         
         <div className="space-y-2">
           <label className="text-sm font-medium block text-foreground">
-            Description (optional)
+            {tCommon('description')}
           </label>
           <textarea 
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Enter item description"
+            placeholder={t('placeholder.itemDescription')}
             className="flex w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm placeholder:text-muted-foreground"
             rows={3}
           />
@@ -272,14 +273,14 @@ export const ItemDialog: React.FC<ItemDialogProps> = ({
         <div className="space-y-4">
           <div className="space-y-2">
             <label className="text-sm font-medium block text-foreground">
-              Category
+              {tCommon('category')}
             </label>
             <select
               value={mainCategoryId}
               onChange={(e) => setMainCategoryId(e.target.value)}
               className="flex h-10 w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm"
             >
-              <option value="">Select a category</option>
+              <option value="">{tCommon('selectCategory')}</option>
               {mainCategories.map(category => (
                 <option key={category.id} value={category.id}>
                   {category.name}
@@ -291,14 +292,15 @@ export const ItemDialog: React.FC<ItemDialogProps> = ({
           {mainCategoryId && subcategories.length > 0 && (
             <div className="space-y-2">
               <label className="text-sm font-medium block text-foreground">
-                Subcategory Tag (optional)
+                {tCommon('subcategory')}
               </label>
               <select
                 value={subcategoryId}
                 onChange={(e) => setSubcategoryId(e.target.value)}
                 className="flex h-10 w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm"
+                disabled={!mainCategoryId}
               >
-                <option value="">Select a subcategory tag</option>
+                <option value="">{tCommon('selectSubcategory')}</option>
                 {subcategories.map(category => (
                   <option key={category.id} value={category.id}>
                     {category.name}
@@ -312,7 +314,7 @@ export const ItemDialog: React.FC<ItemDialogProps> = ({
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <label className="text-sm font-medium block text-foreground">
-              Start Date (optional)
+              {tCommon('startDate')}
             </label>
             <input 
               type="date"
@@ -324,7 +326,7 @@ export const ItemDialog: React.FC<ItemDialogProps> = ({
           
           <div className="space-y-2">
             <label className="text-sm font-medium block text-foreground">
-              End Date (optional)
+              {tCommon('endDate')}
             </label>
             <input 
               type="date"
@@ -340,10 +342,10 @@ export const ItemDialog: React.FC<ItemDialogProps> = ({
             variant="outline" 
             onClick={() => onOpenChange(false)}
           >
-            Cancel
+            {t('cancel')}
           </SimpleButton>
           <SimpleButton type="submit">
-            {mode === 'add' ? 'Add Item' : 'Save Changes'}
+            {mode === 'add' ? t('addItem') : tCommon('saveChanges')}
           </SimpleButton>
         </div>
       </form>

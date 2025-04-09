@@ -2,6 +2,7 @@ import React from 'react';
 import { UserSettings } from '@/types/settings';
 import { LuCalendar } from 'react-icons/lu';
 import { Badge } from '@/components/ui/badge';
+import { useTranslations } from 'next-intl';
 
 // Componente de Switch simplificado
 const Switch = ({ checked, onCheckedChange }: { checked: boolean; onCheckedChange: (checked: boolean) => void }) => (
@@ -37,43 +38,42 @@ export const DisplaySettings: React.FC<DisplaySettingsProps> = ({
   settings,
   onSettingsChange,
 }) => {
-  // Item de ejemplo para la previsualización
+  const t = useTranslations('app.displaySettings');
+  const tCommon = useTranslations('app.common');
+
   const previewItem = {
-    title: "Example Task",
-    description: "This is an example description to show how your items will look.",
+    title: t('exampleTask'),
+    description: t('exampleDescription'),
     startDate: new Date(),
-    endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 días después
-    tags: ["example", "preview"],
+    endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    tags: [t('exampleTag1'), t('exampleTag2')],
     categoryId: "preview",
   };
 
   const previewCategory = {
     id: "preview",
-    name: "Preview Category",
+    name: t('previewCategoryName'),
     color: "#7C3AED",
     icon: "🎨"
   };
 
   const handleSettingChange = (key: keyof UserSettings, value: boolean) => {
-    onSettingsChange({
-      ...settings,
-      [key]: value,
-    });
+    onSettingsChange({ ...settings, [key]: value });
   };
 
   return (
     <div className="space-y-6">
       <div className="space-y-6">
-        <h2 className="text-lg font-semibold text-foreground mb-4">Item Display Settings</h2>
+        <h2 className="text-lg font-semibold text-foreground mb-4">{t('title')}</h2>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="space-y-6">
             <div className="space-y-4">
-              <h3 className="text-sm font-medium text-foreground">Item Content</h3>
+              <h3 className="text-sm font-medium text-foreground">{t('itemContent')}</h3>
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <label className="text-sm font-medium text-foreground">Description</label>
-                    <p className="text-sm text-muted-foreground">Show item descriptions</p>
+                    <label className="text-sm font-medium text-foreground">{t('description')}</label>
+                    <p className="text-sm text-muted-foreground">{t('descriptionDesc')}</p>
                   </div>
                   <Switch
                     checked={settings.showItemDescription}
@@ -82,8 +82,8 @@ export const DisplaySettings: React.FC<DisplaySettingsProps> = ({
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
-                    <label className="text-sm font-medium text-foreground">Dates</label>
-                    <p className="text-sm text-muted-foreground">Show start and end dates</p>
+                    <label className="text-sm font-medium text-foreground">{t('dates')}</label>
+                    <p className="text-sm text-muted-foreground">{t('datesDesc')}</p>
                   </div>
                   <Switch
                     checked={settings.showItemDates}
@@ -92,8 +92,8 @@ export const DisplaySettings: React.FC<DisplaySettingsProps> = ({
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
-                    <label className="text-sm font-medium text-foreground">Tags</label>
-                    <p className="text-sm text-muted-foreground">Show item tags</p>
+                    <label className="text-sm font-medium text-foreground">{t('tags')}</label>
+                    <p className="text-sm text-muted-foreground">{t('tagsDesc')}</p>
                   </div>
                   <Switch
                     checked={settings.showItemTags}
@@ -104,12 +104,12 @@ export const DisplaySettings: React.FC<DisplaySettingsProps> = ({
             </div>
 
             <div className="space-y-4">
-              <h3 className="text-sm font-medium text-foreground">Category Display</h3>
+              <h3 className="text-sm font-medium text-foreground">{t('categoryDisplay')}</h3>
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <label className="text-sm font-medium text-foreground">Category Labels</label>
-                    <p className="text-sm text-muted-foreground">Show category names</p>
+                    <label className="text-sm font-medium text-foreground">{t('categoryLabels')}</label>
+                    <p className="text-sm text-muted-foreground">{t('categoryLabelsDesc')}</p>
                   </div>
                   <Switch
                     checked={settings.showCategoryLabels}
@@ -118,8 +118,8 @@ export const DisplaySettings: React.FC<DisplaySettingsProps> = ({
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
-                    <label className="text-sm font-medium text-foreground">Category Icons</label>
-                    <p className="text-sm text-muted-foreground">Show category icons</p>
+                    <label className="text-sm font-medium text-foreground">{t('categoryIcons')}</label>
+                    <p className="text-sm text-muted-foreground">{t('categoryIconsDesc')}</p>
                   </div>
                   <Switch
                     checked={settings.showCategoryIcons}
@@ -128,8 +128,8 @@ export const DisplaySettings: React.FC<DisplaySettingsProps> = ({
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
-                    <label className="text-sm font-medium text-foreground">Disable Category Colors</label>
-                    <p className="text-sm text-muted-foreground">Use default badge style for categories</p>
+                    <label className="text-sm font-medium text-foreground">{t('disableCategoryColors')}</label>
+                    <p className="text-sm text-muted-foreground">{t('disableCategoryColorsDesc')}</p>
                   </div>
                   <Switch
                     checked={settings.disableCategoryColors}
@@ -141,7 +141,7 @@ export const DisplaySettings: React.FC<DisplaySettingsProps> = ({
           </div>
 
           <div className="sticky top-4">
-            <h3 className="text-sm font-medium text-foreground mb-4">Preview</h3>
+            <h3 className="text-sm font-medium text-foreground mb-4">{t('preview')}</h3>
             <div className="border rounded-lg p-4 bg-card dark:bg-card/50">
               <div className="p-3 bg-background rounded-md shadow-sm">
                 <div className="flex items-center gap-2 mb-2">
@@ -152,16 +152,10 @@ export const DisplaySettings: React.FC<DisplaySettingsProps> = ({
                     <Badge 
                       variant={settings.disableCategoryColors ? "secondary" : "outline"}
                       className="text-xs"
-                      style={!settings.disableCategoryColors ? {
-                        backgroundColor: previewCategory.color,
-                        color: '#fff',
-                        borderColor: 'transparent'
-                      } : undefined}
+                      style={!settings.disableCategoryColors ? { backgroundColor: previewCategory.color, color: '#fff', borderColor: 'transparent' } : undefined}
                     >
                       {settings.showCategoryIcons && previewCategory.icon}
-                      {settings.showCategoryLabels && (
-                        <>{' '}{previewCategory.name}</>
-                      )}
+                      {settings.showCategoryLabels && <>{' '}{previewCategory.name}</>}
                     </Badge>
                   )}
                 </div>
@@ -179,18 +173,8 @@ export const DisplaySettings: React.FC<DisplaySettingsProps> = ({
                       </span>
                     ) : (
                       <>
-                        {previewItem.startDate && (
-                          <span className="flex items-center gap-1">
-                            <LuCalendar className="h-3 w-3" />
-                            {previewItem.startDate.toLocaleDateString()}
-                          </span>
-                        )}
-                        {previewItem.endDate && (
-                          <span className="flex items-center gap-1">
-                            <LuCalendar className="h-3 w-3" />
-                            {previewItem.endDate.toLocaleDateString()}
-                          </span>
-                        )}
+                        {previewItem.startDate && <span className="flex items-center gap-1"><LuCalendar className="h-3 w-3" />{previewItem.startDate.toLocaleDateString()}</span>}
+                        {previewItem.endDate && <span className="flex items-center gap-1"><LuCalendar className="h-3 w-3" />{previewItem.endDate.toLocaleDateString()}</span>}
                       </>
                     )}
                   </div>
@@ -198,30 +182,25 @@ export const DisplaySettings: React.FC<DisplaySettingsProps> = ({
                 {settings.showItemTags && previewItem.tags && previewItem.tags.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-2">
                     {previewItem.tags.map((tag, index) => (
-                      <Badge key={index} variant="outline" className="text-xs">
-                        {tag}
-                      </Badge>
+                      <Badge key={index} variant="outline" className="text-xs">{tag}</Badge>
                     ))}
                   </div>
                 )}
               </div>
             </div>
-            <p className="text-sm text-muted-foreground mt-4">
-              This is a preview of how your items will look with the current settings.
-              Changes are saved automatically.
-            </p>
+            <p className="text-sm text-muted-foreground mt-4">{t('previewDesc')}</p>
           </div>
         </div>
       </div>
 
       <div className="space-y-6">
-        <h2 className="text-lg font-semibold text-foreground mb-4">Feature Settings</h2>
+        <h2 className="text-lg font-semibold text-foreground mb-4">{t('featureSettings')}</h2>
         <div className="space-y-4">
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <label className="text-sm font-medium text-foreground">Auto-increment Duplicates</label>
-                <p className="text-sm text-muted-foreground">Automatically increment numbers when duplicating items (e.g. "Book, volume 1" → "Book, volume 2")</p>
+                <label className="text-sm font-medium text-foreground">{t('autoIncrementDuplicates')}</label>
+                <p className="text-sm text-muted-foreground">{t('autoIncrementDuplicatesDesc')}</p>
               </div>
               <Switch
                 checked={settings.autoIncrementDuplicates}

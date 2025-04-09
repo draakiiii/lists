@@ -6,6 +6,7 @@ import { useAuth } from '@/providers/AuthProvider';
 import { doc, updateDoc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { updateProfile, updateEmail } from 'firebase/auth';
+import { useTranslations } from 'next-intl';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -15,14 +16,14 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
+  const t = useTranslations('app.profile');
+  const tCommon = useTranslations('app.common');
 
   useEffect(() => {
     if (!user) {
       router.push('/auth/login');
       return;
     }
-
-    // Initialize form with user data
     setDisplayName(user.displayName || '');
     setEmail(user.email || '');
     setLoading(false);
@@ -36,67 +37,39 @@ export default function ProfilePage() {
     setMessage({ type: '', text: '' });
 
     try {
-      // Update profile in Firebase Authentication
-      await updateProfile(user, {
-        displayName,
-      });
-
-      // Update email if changed
+      await updateProfile(user, { displayName });
       if (email !== user.email && email.trim() !== '') {
         await updateEmail(user, email);
       }
 
-      // Check if user data exists in Firestore
       const userDocRef = doc(db, 'users', user.uid);
       const userDoc = await getDoc(userDocRef);
+      const userData = { displayName, email, updatedAt: new Date() };
 
       if (userDoc.exists()) {
-        // Update existing user document
-        await updateDoc(userDocRef, {
-          displayName,
-          email,
-          updatedAt: new Date()
-        });
+        await updateDoc(userDocRef, userData);
       } else {
-        // Create user document if it doesn't exist
-        await setDoc(userDocRef, {
-          displayName,
-          email,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        });
+        await setDoc(userDocRef, { ...userData, createdAt: new Date() });
       }
 
-      setMessage({
-        type: 'success',
-        text: 'Profile updated successfully!'
-      });
+      setMessage({ type: 'success', text: t('updateSuccess') });
     } catch (error) {
       console.error('Error updating profile:', error);
-      setMessage({
-        type: 'error',
-        text: 'Failed to update profile. Please try again.'
-      });
+      setMessage({ type: 'error', text: t('updateError') });
     } finally {
       setSaving(false);
     }
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-foreground">Loading...</p>
-      </div>
-    );
+    return <div className="min-h-screen flex items-center justify-center"><p className="text-foreground">{tCommon('loading')}</p></div>;
   }
 
   return (
     <div className="max-w-2xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
       <div className="md:flex md:items-center md:justify-between mb-8">
         <div className="flex-1 min-w-0">
-          <h1 className="text-2xl font-bold leading-7 text-gray-900 dark:text-white sm:text-3xl">
-            User Profile
-          </h1>
+          <h1 className="text-2xl font-bold leading-7 text-gray-900 dark:text-white sm:text-3xl">{t('title')}</h1>
         </div>
       </div>
 
@@ -110,40 +83,16 @@ export default function ProfilePage() {
 
           <div className="space-y-6">
             <div>
-              <label htmlFor="displayName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Display Name
-              </label>
-              <input
-                type="text"
-                name="displayName"
-                id="displayName"
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-              />
+              <label htmlFor="displayName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('displayName')}</label>
+              <input type="text" name="displayName" id="displayName" value={displayName} onChange={(e) => setDisplayName(e.target.value)} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
             </div>
-
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Email address
-              </label>
-              <input
-                type="email"
-                name="email"
-                id="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-              />
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('email')}</label>
+              <input type="email" name="email" id="email" value={email} onChange={(e) => setEmail(e.target.value)} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
             </div>
-
             <div className="flex justify-end">
-              <button
-                type="submit"
-                disabled={saving}
-                className={`inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${saving ? 'opacity-75 cursor-not-allowed' : ''}`}
-              >
-                {saving ? 'Saving...' : 'Save'}
+              <button type="submit" disabled={saving} className={`inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${saving ? 'opacity-75 cursor-not-allowed' : ''}`}>
+                {saving ? t('saving') : tCommon('save')}
               </button>
             </div>
           </div>

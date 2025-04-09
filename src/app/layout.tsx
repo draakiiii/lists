@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { AuthProvider } from '@/providers/AuthProvider'
 import { ThemeProvider } from '@/providers/ThemeProvider'
+import { LanguageProvider } from '@/providers/LanguageProvider'
 import { Navbar } from '@/components/Navbar'
 import { Toaster } from '@/components/ui/toaster'
 
@@ -23,11 +24,13 @@ export default function RootLayout({
       <body className={inter.className}>
         <AuthProvider>
           <ThemeProvider>
-            <Navbar />
-            <main className="min-h-screen bg-gray-50 dark:bg-gray-900">
-              {children}
-            </main>
-            <Toaster />
+            <LanguageProvider>
+              <Navbar />
+              <main className="min-h-screen bg-gray-50 dark:bg-gray-900">
+                {children}
+              </main>
+              <Toaster />
+            </LanguageProvider>
           </ThemeProvider>
         </AuthProvider>
       </body>

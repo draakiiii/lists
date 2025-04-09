@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { LuSearch, LuX } from 'react-icons/lu';
 import { ListItem } from '@/types/list';
+import { useTranslations } from 'next-intl';
 
 interface SearchFilterProps {
   items: ListItem[];
@@ -14,17 +15,16 @@ export const SearchFilter: React.FC<SearchFilterProps> = ({
   onFilteredItemsChange,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const t = useTranslations('app.placeholder');
 
   // Aplicar búsqueda cuando cambia el criterio
   useEffect(() => {
     const applySearch = () => {
       const filtered = items.filter(item => {
-        // Filtrar por término de búsqueda (en título y descripción)
-        const matchesQuery = !searchQuery || 
-          item.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-          (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()));
-        
-        return matchesQuery;
+        const query = searchQuery.toLowerCase();
+        return !searchQuery || 
+          item.title.toLowerCase().includes(query) || 
+          (item.description && item.description.toLowerCase().includes(query));
       });
       
       onFilteredItemsChange(filtered);
@@ -41,7 +41,7 @@ export const SearchFilter: React.FC<SearchFilterProps> = ({
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search by title or description..."
+          placeholder={t('search')}
           className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 py-2 pl-10 pr-4 text-gray-900 dark:text-gray-100 focus:border-indigo-500 dark:focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:focus:ring-indigo-400"
         />
         {searchQuery && (

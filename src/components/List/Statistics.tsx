@@ -11,6 +11,7 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { useTranslations } from 'next-intl';
 
 interface StatisticsProps {
   list: List;
@@ -25,6 +26,8 @@ export const Statistics: React.FC<StatisticsProps> = ({
   isSearchActive = false,
   filteredItems = list.items
 }) => {
+  const t = useTranslations('app.list');
+
   const stats = useMemo(() => {
     // Use filteredItems if search is active, otherwise use all list items
     const itemsToAnalyze = isSearchActive ? filteredItems : list.items;
@@ -47,12 +50,7 @@ export const Statistics: React.FC<StatisticsProps> = ({
     const subcategories = categories.filter(category => !!category.parentId);
     
     // Create a map to quickly access categories by ID and name
-    const categoryMapById = new Map();
-    const categoryMapByName = new Map();
-    categories.forEach(category => {
-      categoryMapById.set(category.id, category);
-      categoryMapByName.set(category.name.toLowerCase(), category);
-    });
+    const categoryMapById = new Map(categories.map(c => [c.id, c]));
     
     // Create a map of parent categories to their subcategories
     const categoryHierarchy = parentCategories.map(parentCategory => {
@@ -62,11 +60,11 @@ export const Statistics: React.FC<StatisticsProps> = ({
       
       // All items in this parent category (not considering subcategories yet)
       const categoryItems = itemsToAnalyze.filter(item => 
-        item.categoryId === parentCategory.id
+        item.categoryId === parentCategory.id || childCategories.some(c => c.id === item.categoryId)
       );
       
       // Map of items to their matching subcategory based on tags
-      const itemSubcategoryMap = new Map();
+      const itemSubcategoryMap = new Map<string, Category>();
       
       // For each item in this category, check if it has a tag matching a subcategory name
       categoryItems.forEach(item => {
@@ -85,23 +83,20 @@ export const Statistics: React.FC<StatisticsProps> = ({
       });
       
       // Count items by subcategory based on the mapping
-      const subcategoryItemsMap = new Map();
-      childCategories.forEach(subcat => {
-        subcategoryItemsMap.set(subcat.id, []);
-      });
+      const subcategoryItemsMap = new Map<string, ListItem[]>(childCategories.map(sc => [sc.id, []]));
       
       // Assign items to subcategories based on tags
       categoryItems.forEach(item => {
         const matchingSubcategory = itemSubcategoryMap.get(item.id);
         if (matchingSubcategory) {
-          const items = subcategoryItemsMap.get(matchingSubcategory.id) || [];
-          items.push(item);
-          subcategoryItemsMap.set(matchingSubcategory.id, items);
+          subcategoryItemsMap.get(matchingSubcategory.id)?.push(item);
+        } else if (item.categoryId === parentCategory.id) {
+           // Item belongs directly to the parent category
         }
       });
       
       // Items that have the category but don't match any subcategory by tag
-      const directItems = categoryItems.filter(item => !itemSubcategoryMap.has(item.id));
+      const directItems = categoryItems.filter(item => item.categoryId === parentCategory.id && !itemSubcategoryMap.has(item.id));
       
       // Create subcategory statistics
       const subcategoryItems = childCategories.map(subcategory => {
@@ -153,22 +148,23 @@ export const Statistics: React.FC<StatisticsProps> = ({
     };
   }, [list.columns, categories, filteredItems, isSearchActive]);
 
+  const renderItemsCount = (count: number, percentage: number) => {
+    return t('itemsCount', { count: count, percentage: percentage.toFixed(1) });
+  }
+
   return (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle>List Statistics</CardTitle>
+        <CardTitle>{t('listStatsTitle')}</CardTitle>
         <CardDescription>
-          {isSearchActive 
-            ? 'Analysis of your filtered list items'
-            : 'Analysis of your list items and their distribution'
-          }
+          {isSearchActive ? t('statsFilteredDescription') : t('statsDescription')}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="categories" className="w-full">
           <TabsList className="grid w-full grid-cols-2 mb-4">
-            <TabsTrigger value="categories">By Category</TabsTrigger>
-            <TabsTrigger value="columns">By Column</TabsTrigger>
+            <TabsTrigger value="categories">{t('byCategory')}</TabsTrigger>
+            <TabsTrigger value="columns">{t('byColumn')}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="categories">
@@ -177,9 +173,9 @@ export const Statistics: React.FC<StatisticsProps> = ({
               {stats.uncategorizedCount > 0 && (
                 <div className="mb-4">
                   <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm font-medium">Uncategorized</span>
+                    <span className="text-sm font-medium">{t('uncategorized')}</span>
                     <span className="text-sm text-muted-foreground">
-                      {stats.uncategorizedCount} items ({stats.uncategorizedPercentage.toFixed(1)}%)
+                      {renderItemsCount(stats.uncategorizedCount, stats.uncategorizedPercentage)}
                     </span>
                   </div>
                   <Progress value={stats.uncategorizedPercentage} className="h-2 mb-4" />
@@ -202,7 +198,7 @@ export const Statistics: React.FC<StatisticsProps> = ({
                           </span>
                         </div>
                         <span className="text-sm text-muted-foreground">
-                          {categoryData.totalCount} items ({categoryData.totalPercentage.toFixed(1)}%)
+                          {renderItemsCount(categoryData.totalCount, categoryData.totalPercentage)}
                         </span>
                       </div>
                     </AccordionTrigger>
@@ -211,9 +207,9 @@ export const Statistics: React.FC<StatisticsProps> = ({
                       {categoryData.directCount > 0 && (
                         <div className="ml-6 mb-2">
                           <div className="flex justify-between items-center mb-2">
-                            <span className="text-sm">Without subcategory</span>
+                            <span className="text-sm">{t('withoutSubcategory')}</span>
                             <span className="text-sm text-muted-foreground">
-                              {categoryData.directCount} items ({categoryData.directCategoryPercentage.toFixed(1)}%)
+                              {renderItemsCount(categoryData.directCount, categoryData.directCategoryPercentage)} ({t('itemsCount', {count: categoryData.directCount, percentage: categoryData.directCategoryPercentage.toFixed(1)})})
                             </span>
                           </div>
                           <Progress value={categoryData.directCategoryPercentage} className="h-1.5 mb-2" />
@@ -234,7 +230,7 @@ export const Statistics: React.FC<StatisticsProps> = ({
                               </span>
                             </div>
                             <span className="text-sm text-muted-foreground">
-                              {subcategoryData.count} items ({subcategoryData.categoryPercentage.toFixed(1)}%)
+                              {renderItemsCount(subcategoryData.count, subcategoryData.categoryPercentage)}
                             </span>
                           </div>
                           <Progress value={subcategoryData.categoryPercentage} className="h-1.5 mb-2" />
@@ -254,7 +250,7 @@ export const Statistics: React.FC<StatisticsProps> = ({
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-sm font-medium">{column.header}</span>
                     <span className="text-sm text-muted-foreground">
-                      {column.count} items ({column.percentage.toFixed(1)}%)
+                      {renderItemsCount(column.count, column.percentage)}
                     </span>
                   </div>
                   <Progress value={column.percentage} className="h-2" />
