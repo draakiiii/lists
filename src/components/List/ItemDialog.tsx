@@ -154,7 +154,21 @@ export const ItemDialog: React.FC<ItemDialogProps> = ({
             setSubcategoryId(category.id);
           } else {
             setMainCategoryId(category.id);
-            setSubcategoryId('');
+            // Check if there's a tag that matches a subcategory name
+            if (initialData.tags && initialData.tags.length > 0) {
+              const subcategories = categories.filter(c => c.parentId === category.id);
+              for (const tag of initialData.tags) {
+                const matchingSubcategory = subcategories.find(
+                  sub => sub.name.toLowerCase() === tag.toLowerCase()
+                );
+                if (matchingSubcategory) {
+                  setSubcategoryId(matchingSubcategory.id);
+                  break;
+                }
+              }
+            } else {
+              setSubcategoryId('');
+            }
           }
         }
       } else {

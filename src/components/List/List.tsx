@@ -200,6 +200,9 @@ export const List: React.FC<ListProps> = ({
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const router = useRouter();
   const { user } = useAuth();
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const autoScrollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const dragStartRef = useRef<{ x: number; y: number } | null>(null);
   
   // Estado para elementos filtrados por búsqueda
   const [filteredItems, setFilteredItems] = useState<ListItem[]>(list.items);
@@ -232,6 +235,82 @@ export const List: React.FC<ListProps> = ({
   useEffect(() => {
     setIsSearchActive(filteredItems.length !== list.items.length);
   }, [filteredItems, list.items]);
+
+  // Función para manejar el auto-scroll
+  const handleAutoScroll = useCallback((clientX: number) => {
+    if (!isDragging || !scrollContainerRef.current) return;
+
+    const container = scrollContainerRef.current;
+    const containerRect = container.getBoundingClientRect();
+    const scrollSpeed = 10;
+    const scrollTriggerDistance = 100;
+
+    // Calcular las distancias desde los bordes
+    const distanceFromLeft = clientX - containerRect.left;
+    const distanceFromRight = containerRect.right - clientX;
+
+    // Limpiar el intervalo existente
+    if (autoScrollIntervalRef.current) {
+      clearInterval(autoScrollIntervalRef.current);
+      autoScrollIntervalRef.current = null;
+    }
+
+    // Si estamos cerca del borde izquierdo o derecho, iniciamos el auto-scroll
+    if (distanceFromLeft < scrollTriggerDistance || distanceFromRight < scrollTriggerDistance) {
+      autoScrollIntervalRef.current = setInterval(() => {
+        if (distanceFromLeft < scrollTriggerDistance) {
+          // Scroll hacia la izquierda
+          container.scrollBy({
+            left: -scrollSpeed,
+            behavior: 'auto'
+          });
+        } else if (distanceFromRight < scrollTriggerDistance) {
+          // Scroll hacia la derecha
+          container.scrollBy({
+            left: scrollSpeed,
+            behavior: 'auto'
+          });
+        }
+      }, 16);
+    }
+  }, [isDragging]);
+
+  // Manejador de eventos de mouse/touch
+  const handleDragMove = useCallback((e: MouseEvent | TouchEvent) => {
+    if (!isDragging) return;
+
+    const clientX = 'touches' in e 
+      ? e.touches[0].clientX 
+      : (e as MouseEvent).clientX;
+
+    handleAutoScroll(clientX);
+  }, [isDragging, handleAutoScroll]);
+
+  // Limpiar el intervalo cuando se detiene el arrastre
+  useEffect(() => {
+    if (!isDragging && autoScrollIntervalRef.current) {
+      clearInterval(autoScrollIntervalRef.current);
+      autoScrollIntervalRef.current = null;
+      dragStartRef.current = null;
+    }
+  }, [isDragging]);
+
+  // Agregar/remover event listeners para el auto-scroll
+  useEffect(() => {
+    if (isDragging) {
+      window.addEventListener('mousemove', handleDragMove);
+      window.addEventListener('touchmove', handleDragMove);
+    }
+
+    return () => {
+      window.removeEventListener('mousemove', handleDragMove);
+      window.removeEventListener('touchmove', handleDragMove);
+      if (autoScrollIntervalRef.current) {
+        clearInterval(autoScrollIntervalRef.current);
+        autoScrollIntervalRef.current = null;
+      }
+    };
+  }, [isDragging, handleDragMove]);
 
   const onDragEnd = useCallback(
     async (result: DropResult) => {
@@ -447,10 +526,29 @@ export const List: React.FC<ListProps> = ({
       <div className="flex-1 overflow-hidden">
         <div className="flex h-full">
           <DragDropContext
-            onDragStart={() => setIsDragging(true)}
-            onDragEnd={onDragEnd}
+            onDragStart={(start) => {
+              setIsDragging(true);
+              if (scrollContainerRef.current) {
+                const containerRect = scrollContainerRef.current.getBoundingClientRect();
+                dragStartRef.current = {
+                  x: containerRect.left + scrollContainerRef.current.scrollLeft,
+                  y: containerRect.top + scrollContainerRef.current.scrollTop
+                };
+              }
+            }}
+            onDragEnd={(result) => {
+              setIsDragging(false);
+              if (autoScrollIntervalRef.current) {
+                clearInterval(autoScrollIntervalRef.current);
+                autoScrollIntervalRef.current = null;
+              }
+              onDragEnd(result);
+            }}
           >
-            <div className="flex-1 overflow-x-auto p-4">
+            <div 
+              ref={scrollContainerRef}
+              className="flex-1 overflow-x-auto overflow-y-hidden p-4 touch-pan-x"
+            >
               <div className="flex gap-4 items-start">
                 <Droppable droppableId="columns" direction="horizontal" type="COLUMN">
                   {(provided: DroppableProvided) => (
