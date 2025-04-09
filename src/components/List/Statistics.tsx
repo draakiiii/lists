@@ -209,7 +209,7 @@ export const Statistics: React.FC<StatisticsProps> = ({
                           <div className="flex justify-between items-center mb-2">
                             <span className="text-sm">{t('withoutSubcategory')}</span>
                             <span className="text-sm text-muted-foreground">
-                              {renderItemsCount(categoryData.directCount, categoryData.directCategoryPercentage)} ({t('itemsCount', {count: categoryData.directCount, percentage: categoryData.directCategoryPercentage.toFixed(1)})})
+                              {renderItemsCount(categoryData.directCount, categoryData.directCategoryPercentage)}
                             </span>
                           </div>
                           <Progress value={categoryData.directCategoryPercentage} className="h-1.5 mb-2" />
