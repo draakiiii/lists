@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Column } from '@/types/list';
+import { useClickOutside } from '@/hooks/useClickOutside';
 
 // Componentes simplificados para evitar dependencias problemáticas
 const SimpleDialog = ({ 
@@ -13,11 +14,19 @@ const SimpleDialog = ({
   title: string, 
   children: React.ReactNode 
 }) => {
+  const dialogRef = React.useRef<HTMLDivElement>(null);
+
+  useClickOutside(dialogRef, () => {
+    if (open) {
+      onOpenChange(false);
+    }
+  });
+
   if (!open) return null;
   
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-background rounded-lg shadow-lg max-w-md w-full p-6">
+      <div ref={dialogRef} className="bg-background rounded-lg shadow-lg max-w-md w-full p-6">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold text-foreground">{title}</h2>
           <button 
