@@ -21,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { LoadingOverlay } from '@/components/ui/spinner';
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<UserSettings | null>(null);
@@ -107,11 +108,7 @@ export default function SettingsPage() {
   };
 
   if (loading || !settings) {
-    return (
-      <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
-        <p className="text-foreground">Loading...</p>
-      </div>
-    );
+    return <LoadingOverlay text={tSettings ? tSettings('loading') : 'Loading...'} />;
   }
 
   return (

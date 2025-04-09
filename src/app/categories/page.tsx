@@ -13,6 +13,7 @@ import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import type { DropResult } from '@hello-pangea/dnd';
 import { deleteField } from 'firebase/firestore';
 import { useTranslations } from 'next-intl';
+import { LoadingOverlay } from '@/components/ui/spinner';
 
 // Lista de emojis comunes para categorías
 const COMMON_ICONS = ['📁', '📚', '🎬', '🎮', '🛍️', '✅', '🎵', '🍽️', '💼', '🏠', '🎨', '✈️', '💪', '📝'];
@@ -384,9 +385,7 @@ export default function CategoriesPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-foreground">{tCommon('loading')}</p>
-      </div>
+      <LoadingOverlay text={tCommon('loading')} />
     );
   }
 

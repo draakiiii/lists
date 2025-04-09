@@ -7,6 +7,7 @@ import { doc, updateDoc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { updateProfile, updateEmail } from 'firebase/auth';
 import { useTranslations } from 'next-intl';
+import { LoadingOverlay } from '@/components/ui/spinner';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -59,7 +60,7 @@ export default function ProfilePage() {
   };
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center"><p className="text-foreground">{tCommon('loading')}</p></div>;
+    return <LoadingOverlay text={tCommon('loading')} />;
   }
 
   return (

@@ -6,12 +6,18 @@ import { useAuth } from '@/providers/AuthProvider';
 import { listService } from '@/lib/services/listService';
 import { List } from '@/types/list';
 import Link from 'next/link';
-import { LuTrash, LuPencil, LuPlus, LuInfo, LuRefreshCw } from 'react-icons/lu';
+import { LuTrash, LuPencil, LuPlus, LuInfo, LuRefreshCw, LuBug, LuSend } from 'react-icons/lu';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { useTranslations } from 'next-intl';
 import { useOnboardingTour } from '@/components/OnboardingTour';
+import { LoadingOverlay } from '@/components/ui/spinner';
+import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { db } from '@/lib/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 export default function Dashboard() {
   const [lists, setLists] = useState<List[]>([]);
@@ -21,6 +27,15 @@ export default function Dashboard() {
     listId: '',
     listName: '',
   });
+  const [feedbackDialog, setFeedbackDialog] = useState(false);
+  const [feedbackForm, setFeedbackForm] = useState({
+    type: 'bug',
+    subject: '',
+    message: '',
+  });
+  const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  
   const router = useRouter();
   const { user } = useAuth();
   const { toast } = useToast();
@@ -32,6 +47,14 @@ export default function Dashboard() {
       router.push('/auth/login');
       return;
     }
+
+    // Comprobar si el usuario es administrador
+    // Protegemos el email de admin mediante variables de entorno
+    const ADMIN_EMAILS = process.env.NEXT_PUBLIC_ADMIN_EMAIL 
+      ? [process.env.NEXT_PUBLIC_ADMIN_EMAIL] 
+      : ['ordenadorsolo@gmail.com']; // Valor por defecto en caso de que no exista la variable
+    
+    setIsAdmin(ADMIN_EMAILS.includes(user.email as string));
 
     const fetchLists = async () => {
       try {
@@ -95,11 +118,57 @@ export default function Dashboard() {
     });
   };
 
+  const handleFeedbackSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!feedbackForm.subject || !feedbackForm.message) {
+      toast({
+        title: t('feedback.missingInfo'),
+        description: t('feedback.fillAllFields'),
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    setFeedbackSubmitting(true);
+    
+    try {
+      // Guardar el feedback en Firestore
+      await addDoc(collection(db, 'feedback'), {
+        type: feedbackForm.type,
+        subject: feedbackForm.subject,
+        message: feedbackForm.message,
+        userId: user?.uid || 'anonymous',
+        userEmail: user?.email || 'anonymous',
+        createdAt: serverTimestamp(),
+        status: 'pending', // pending, reviewed, resolved
+      });
+      
+      toast({
+        title: t('feedback.sendFeedback'),
+        description: t('feedback.thankYou'),
+      });
+      
+      setFeedbackDialog(false);
+      setFeedbackForm({
+        type: 'bug',
+        subject: '',
+        message: '',
+      });
+    } catch (error) {
+      console.error('Error sending feedback:', error);
+      toast({
+        title: t('common.error'),
+        description: t('feedback.errorSending'),
+        variant: 'destructive',
+      });
+    } finally {
+      setFeedbackSubmitting(false);
+    }
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-foreground">Loading...</p>
-      </div>
+      <LoadingOverlay text={t('common.loading')} />
     );
   }
 
@@ -111,6 +180,23 @@ export default function Dashboard() {
             {t('list.yourLists')}
           </h1>
           <div className="flex space-x-2">
+            {isAdmin && (
+              <Button 
+                variant="outline" 
+                onClick={() => router.push('/admin/feedback')}
+                className="flex items-center space-x-1 text-foreground"
+              >
+                <span>{t('admin.adminPanel')}</span>
+              </Button>
+            )}
+            <Button 
+              variant="outline" 
+              onClick={() => setFeedbackDialog(true)}
+              className="flex items-center space-x-1 text-foreground"
+            >
+              <LuBug className="h-4 w-4 mr-1" />
+              <span>{t('feedback.reportIssue')}</span>
+            </Button>
             <button
               onClick={createNewList}
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
@@ -181,6 +267,11 @@ export default function Dashboard() {
         )}
       </div>
 
+      <footer className="mt-12 text-center text-sm text-gray-500 dark:text-gray-400 pb-4">
+        <p>Created by <a href="https://x.com/draakiiii" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-indigo-400 hover:underline">@draakiiii</a></p>
+      </footer>
+
+      {/* Delete List Dialog */}
       <Dialog 
         open={deleteDialog.open} 
         onOpenChange={(open) => {
@@ -209,6 +300,112 @@ export default function Dashboard() {
               Delete
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Feedback Dialog */}
+      <Dialog 
+        open={feedbackDialog} 
+        onOpenChange={setFeedbackDialog}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-foreground">{t('feedback.sendFeedback')}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleFeedbackSubmit}>
+            <div className="grid gap-4 py-4">
+              <div className="flex flex-col space-y-1.5">
+                <Label htmlFor="feedback-type">{t('feedback.feedbackType')}</Label>
+                <div className="flex space-x-4">
+                  <div className="flex items-center">
+                    <input
+                      type="radio"
+                      id="type-bug"
+                      name="feedback-type"
+                      value="bug"
+                      checked={feedbackForm.type === 'bug'}
+                      onChange={() => setFeedbackForm({...feedbackForm, type: 'bug'})}
+                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 text-foreground"
+                    />
+                    <label htmlFor="type-bug" className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                      {t('feedback.bugReport')}
+                    </label>
+                  </div>
+                  <div className="flex items-center">
+                    <input
+                      type="radio"
+                      id="type-feature"
+                      name="feedback-type"
+                      value="feature"
+                      checked={feedbackForm.type === 'feature'}
+                      onChange={() => setFeedbackForm({...feedbackForm, type: 'feature'})}
+                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500"
+                    />
+                    <label htmlFor="type-feature" className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                      {t('feedback.featureRequest')}
+                    </label>
+                  </div>
+                  <div className="flex items-center">
+                    <input
+                      type="radio"
+                      id="type-other"
+                      name="feedback-type"
+                      value="other"
+                      checked={feedbackForm.type === 'other'}
+                      onChange={() => setFeedbackForm({...feedbackForm, type: 'other'})}
+                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500"
+                    />
+                    <label htmlFor="type-other" className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                      {t('feedback.other')}
+                    </label>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex flex-col space-y-1.5">
+                <Label htmlFor="subject">{t('feedback.subject')}</Label>
+                <Input
+                  id="subject"
+                  placeholder={t('feedback.subjectPlaceholder')}
+                  value={feedbackForm.subject}
+                  onChange={(e) => setFeedbackForm({...feedbackForm, subject: e.target.value})}
+                  required
+                  className="text-foreground"
+                />
+              </div>
+              
+              <div className="flex flex-col space-y-1.5">
+                <Label htmlFor="message">{t('feedback.message')}</Label>
+                <Textarea
+                  id="message"
+                  placeholder={t('feedback.messagePlaceholder')}
+                  rows={5}
+                  value={feedbackForm.message}
+                  onChange={(e) => setFeedbackForm({...feedbackForm, message: e.target.value})}
+                  required
+                  className="text-foreground"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="secondary" type="button" onClick={() => setFeedbackDialog(false)}>
+                {t('feedback.cancel')}
+              </Button>
+              <Button type="submit" disabled={feedbackSubmitting}>
+                {feedbackSubmitting ? (
+                  <>
+                    <LuRefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                    {t('feedback.sending')}
+                  </>
+                ) : (
+                  <>
+                    <LuSend className="mr-2 h-4 w-4" />
+                    {t('feedback.send')}
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

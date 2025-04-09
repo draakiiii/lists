@@ -213,6 +213,43 @@
       "skipTour": "Saltar Tour",
       "finish": "Finalizar Tour",
       "nextWithProgress": "Siguiente (Paso {step} de {steps})"
+    },
+    "feedback": {
+      "reportIssue": "Reportar Problema",
+      "sendFeedback": "Enviar Comentarios",
+      "feedbackType": "Tipo",
+      "subject": "Asunto",
+      "message": "Mensaje",
+      "bugReport": "Reporte de Error",
+      "featureRequest": "Solicitud de Función",
+      "other": "Otro",
+      "subjectPlaceholder": "Breve descripción de tu problema o comentario",
+      "messagePlaceholder": "Describe tu comentario en detalle...",
+      "cancel": "Cancelar",
+      "send": "Enviar Comentario",
+      "sending": "Enviando...",
+      "thankYou": "¡Gracias por tus comentarios!",
+      "errorSending": "Error al enviar tus comentarios",
+      "missingInfo": "Información incompleta",
+      "fillAllFields": "Por favor, completa todos los campos"
+    },
+    "admin": {
+      "feedbackDashboard": "Panel de Comentarios de Administrador",
+      "refresh": "Actualizar",
+      "filterByStatus": "Filtrar por estado",
+      "all": "Todos",
+      "pending": "Pendiente",
+      "reviewed": "Revisado",
+      "resolved": "Resuelto",
+      "noEntries": "No se encontraron comentarios",
+      "from": "De",
+      "statusUpdated": "Estado actualizado",
+      "statusUpdatedDesc": "El comentario ha sido marcado como {status}",
+      "errorUpdating": "Error al actualizar el estado",
+      "errorLoading": "Error al cargar los comentarios",
+      "accessDenied": "Acceso denegado",
+      "noPermission": "No tienes permiso para acceder a esta página",
+      "adminPanel": "Panel de Administrador"
     }
   }
 } 

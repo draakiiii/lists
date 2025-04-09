@@ -13,6 +13,7 @@ import { useAuth } from '@/providers/AuthProvider';
 import { Button } from '@/components/ui/button';
 import { LuPencil } from 'react-icons/lu';
 import { settingsService } from '@/lib/services/settingsService';
+import { LoadingOverlay } from '@/components/ui/spinner';
 
 export default function ListPage() {
   const params = useParams();
@@ -293,9 +294,7 @@ export default function ListPage() {
 
   if (loading || !list) {
     return (
-      <div className="h-full flex items-center justify-center">
-        <p className="text-foreground">Loading...</p>
-      </div>
+      <LoadingOverlay text="Loading..." />
     );
   }
 

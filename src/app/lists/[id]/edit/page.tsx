@@ -7,6 +7,7 @@ import { useAuth } from '@/providers/AuthProvider';
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
 import { useTranslations } from 'next-intl';
+import { LoadingOverlay } from '@/components/ui/spinner';
 
 export default function EditListPage() {
   const params = useParams();
@@ -72,7 +73,7 @@ export default function EditListPage() {
   };
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center"><p className="text-foreground">{tCommon('loading')}</p></div>;
+    return <LoadingOverlay text={tCommon('loading')} />;
   }
 
   return (

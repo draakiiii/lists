@@ -213,6 +213,43 @@
       "skipTour": "Skip Tour",
       "finish": "Finish Tour",
       "nextWithProgress": "Next (Step {step} of {steps})"
+    },
+    "feedback": {
+      "reportIssue": "Report Issue",
+      "sendFeedback": "Send Feedback",
+      "feedbackType": "Type",
+      "subject": "Subject",
+      "message": "Message",
+      "bugReport": "Bug Report",
+      "featureRequest": "Feature Request",
+      "other": "Other",
+      "subjectPlaceholder": "Brief description of your issue or feedback",
+      "messagePlaceholder": "Describe your feedback in detail...",
+      "cancel": "Cancel",
+      "send": "Send Feedback",
+      "sending": "Sending...",
+      "thankYou": "Thank you for your feedback!",
+      "errorSending": "Failed to send your feedback",
+      "missingInfo": "Missing information",
+      "fillAllFields": "Please fill in all fields"
+    },
+    "admin": {
+      "feedbackDashboard": "Admin Feedback Dashboard",
+      "refresh": "Refresh",
+      "filterByStatus": "Filter by status",
+      "all": "All",
+      "pending": "Pending",
+      "reviewed": "Reviewed",
+      "resolved": "Resolved",
+      "noEntries": "No feedback entries found",
+      "from": "From",
+      "statusUpdated": "Status updated",
+      "statusUpdatedDesc": "Feedback has been marked as {status}",
+      "errorUpdating": "Failed to update status",
+      "errorLoading": "Failed to load feedbacks",
+      "accessDenied": "Access denied",
+      "noPermission": "You do not have permission to access this page",
+      "adminPanel": "Admin Panel"
     }
   }
 } 
